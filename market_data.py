@@ -101,8 +101,28 @@ def get_market_data(symbol="VNINDEX",start="2025-01-01",end=None,source="KBS",fa
 
 
 def market_metrics(df: pd.DataFrame) -> dict:
-    close=df["close"].dropna(); ret=close.pct_change().dropna(); periods=min(63,len(close)-1)
-    return {"level":float(close.iloc[-1]),"return_1m":float(close.iloc[-1]/close.iloc[max(0,len(close)-22)]-1),"return_3m":float(close.iloc[-1]/close.iloc[-1-periods]-1) if periods else 0.0,"volatility":float(ret.std()*np.sqrt(252)) if len(ret) else 0.0,"drawdown":float(close.iloc[-1]/close.cummax().iloc[-1]-1)}
+    frame=df.sort_values("date").copy(); close=frame["close"].dropna(); ret=close.pct_change().dropna(); periods=min(63,len(close)-1)
+    last_date=pd.to_datetime(frame.loc[close.index[-1],"date"]); ytd=frame[pd.to_datetime(frame["date"]).dt.year==last_date.year]["close"].dropna()
+    high_52w=float(close.tail(252).max()); volume=pd.to_numeric(frame.get("volume"),errors="coerce")
+    return {
+        "level":float(close.iloc[-1]),
+        "return_1m":float(close.iloc[-1]/close.iloc[max(0,len(close)-22)]-1),
+        "return_3m":float(close.iloc[-1]/close.iloc[-1-periods]-1) if periods else 0.0,
+        "return_ytd":float(ytd.iloc[-1]/ytd.iloc[0]-1) if len(ytd)>1 else 0.0,
+        "volatility":float(ret.tail(20).std()*np.sqrt(252)) if len(ret)>1 else 0.0,
+        "drawdown":float(close.iloc[-1]/close.cummax().iloc[-1]-1),
+        "distance_52w_high":float(close.iloc[-1]/high_52w-1) if high_52w else 0.0,
+        "ma20":float(close.tail(20).mean()), "ma50":float(close.tail(50).mean()), "ma200":float(close.tail(200).mean()),
+        "volume_ratio_20d":float(volume.iloc[-1]/volume.tail(20).mean()) if len(volume) and volume.tail(20).mean()>0 else np.nan,
+    }
+
+
+def market_technical_frame(df: pd.DataFrame) -> pd.DataFrame:
+    out=df.sort_values("date").copy()
+    out["MA20"]=out["close"].rolling(20).mean(); out["MA50"]=out["close"].rolling(50).mean(); out["MA200"]=out["close"].rolling(200).mean()
+    delta=out["close"].diff(); gain=delta.clip(lower=0).rolling(14).mean(); loss=(-delta.clip(upper=0)).rolling(14).mean(); rs=gain/loss.replace(0,np.nan)
+    out["RSI14"]=100-(100/(1+rs)); out["Volume_MA20"]=pd.to_numeric(out["volume"],errors="coerce").rolling(20).mean()
+    return out
 
 
 def market_regime(metrics: dict) -> str:

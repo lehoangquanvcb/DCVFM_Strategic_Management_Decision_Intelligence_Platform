@@ -1,10 +1,10 @@
 from pathlib import Path
 
-APP_NAME = "DCVFM Strategic Management & Decision Intelligence Platform"
-APP_VERSION = "V4.1"
+APP_NAME = "DCVFM Corporate Performance, Risk & Management Intelligence Platform"
+APP_VERSION = "V4.2"
 AUTHOR = "Le Hoang Quan"
 ROOT = Path(__file__).resolve().parent
-DEFAULT_MASTER = ROOT / "data" / "DCVFM_Strategic_Management_Decision_Intelligence_Master_V4.xlsx"
+DEFAULT_MASTER = ROOT / "data" / "DCVFM_Corporate_Performance_Risk_Management_Intelligence_Master_V4_2.xlsx"
 
 COLORS = {
     "navy": "#081426",
@@ -19,9 +19,9 @@ COLORS = {
 
 REQUIRED_SHEETS = [
     "Company_Profile", "Fund_Master", "AUM", "Fund_Flows", "NAV_History",
-    "Portfolio", "Financials", "Shareholders", "Board_Events", "M&A_Events",
+    "Portfolio", "Financials", "Shareholders", "Board_Events",
     "Competitors", "Risk_Indicators", "Scenarios", "Advisory_Rules",
     "Product_Profitability", "Distribution_Channels", "Investor_Behaviour",
     "Regulatory_Compliance", "Product_Strategy", "Business_Plan_KPI",
-    "Valuation_Scenarios", "Decision_Tracker",
+    "Decision_Tracker", "Macro_Indicators", "Operating_KPI",
 ]

@@ -13,7 +13,8 @@ DATE_COLUMNS = {"Date", "As_of", "Start_Date", "End_Date"}
 V4_MANAGEMENT_SHEETS = {
     "Product_Profitability", "Distribution_Channels", "Investor_Behaviour",
     "Regulatory_Compliance", "Product_Strategy", "Business_Plan_KPI",
-    "Valuation_Scenarios", "Decision_Tracker",
+    "Decision_Tracker",
+    "Macro_Indicators", "Operating_KPI",
 }
 
 

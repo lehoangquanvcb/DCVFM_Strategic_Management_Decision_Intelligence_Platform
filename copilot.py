@@ -1,19 +1,14 @@
 from __future__ import annotations
 
-from analytics import advanced_fund_analytics, executive_metrics, integrated_financial_model, product_profitability, distribution_intelligence, compliance_cockpit, business_plan_kpi, valuation_scenarios, decision_summary
+from analytics import advanced_fund_analytics, executive_metrics, integrated_financial_model, product_profitability, distribution_intelligence, compliance_cockpit, business_plan_kpi, decision_summary
 from data_quality import quality_summary
-from forensic import mna_signal, buyer_scenarios
 
 
 def answer(question: str, data, regime: str) -> str:
-    q=(question or "").lower().strip(); ex=executive_metrics(data); mna=mna_signal(data); quality=quality_summary(data)
-    if not q: return "Nhập câu hỏi về AUM, hiệu quả quỹ, M&A, buyer scenario, tài chính hoặc chất lượng dữ liệu."
+    q=(question or "").lower().strip(); ex=executive_metrics(data); quality=quality_summary(data)
+    if not q: return "Nhập câu hỏi về AUM, hiệu quả quỹ, thị trường, vĩ mô, tài chính, vận hành hoặc chất lượng dữ liệu."
     if "aum" in q or "dòng tiền" in q:
         return f"AUM hiện tại trong Master là {ex['aum']/1000:,.1f} nghìn tỷ đồng; tăng {ex['aum_growth']:.1%} so với tháng trước. Dòng tiền ròng 3 tháng là {ex['flow_3m']:,.0f} tỷ đồng. Cần đọc cùng Market regime = {regime} để tách tăng trưởng do thị trường và do huy động mới."
-    if "m&a" in q or "thâu tóm" in q or "sở hữu" in q:
-        return f"M&A monitoring signal hiện là {mna['score']:.0f}/100 ({mna['level']}), dựa trên {mna['evidence_count']} evidence items. Đây không phải xác suất giao dịch. Khoảng trống ưu tiên là shareholder register, governance report và counterparty của negotiated trades."
-    if "hdbank" in q or "lạc việt" in q or "finance suisse" in q or "buyer" in q:
-        b=buyer_scenarios(data).head(3); return "Buyer scenario ranking: " + "; ".join(f"{r.Scenario}: {r.Weighted_Score:.1f}/100" for _,r in b.iterrows()) + ". Điểm strategic fit không thay thế evidence strength."
     if "lợi nhuận" in q or "doanh thu" in q or "fee" in q:
         m=integrated_financial_model(data).iloc[-1]; return f"Kịch bản 2029 minh họa: AUM cuối kỳ {m['Ending_AUM_VND_bn']/1000:,.1f} nghìn tỷ, doanh thu {m['Revenue_VND_bn']:,.0f} tỷ và NPAT {m['NPAT_VND_bn']:,.0f} tỷ. Drivers chính là market return, net flow, fee yield và operating leverage trong Financial_Drivers."
     if "dữ liệu" in q or "quality" in q or "giả định" in q:
@@ -28,8 +23,11 @@ def answer(question: str, data, regime: str) -> str:
         c=compliance_cockpit(data); n=int((c['Status']=='Action').sum()); return f"Compliance Cockpit có {n} control cần hành động. Cần xác minh quy định, threshold và evidence với Compliance/Legal trước khi dùng cho báo cáo chính thức."
     if "kế hoạch" in q or "kpi" in q or "forecast" in q:
         k=business_plan_kpi(data); r=k.sort_values('Forecast_vs_Plan_Pct').iloc[0]; return f"KPI lệch kế hoạch lớn nhất là {r['KPI']}: forecast so với plan {r['Forecast_vs_Plan_Pct']:.1%}, trạng thái {r['Status']}."
-    if "định giá" in q or "valuation" in q or "giá mua" in q:
-        v=valuation_scenarios(data); return "Các kịch bản giá mua minh họa: " + "; ".join(f"{r.Scenario}: {r.Purchase_Price_VND_bn:,.0f} tỷ" for _,r in v.iterrows()) + ". Không phải fairness opinion."
+    if "vĩ mô" in q or "macro" in q or "lãi suất" in q or "tỷ giá" in q:
+        m=data["Macro_Indicators"]; return "Macro pulse: " + "; ".join(f"{r.Indicator}: {r.Current_Value} {r.Unit} ({r.Direction})" for _,r in m.head(6).iterrows()) + ". Các dòng Assumption cần thay bằng số công bố chính thức."
+    if "vận hành" in q or "sla" in q or "operations" in q:
+        o=data["Operating_KPI"]; attention=o[o["Status"].astype(str).str.lower().isin(["action","off track","watch"])]
+        return "Operating KPIs cần theo dõi: " + "; ".join(f"{r.KPI}: {r.Status} — {r.Management_Action}" for _,r in attention.head(5).iterrows())
     if "quyết định" in q or "decision" in q:
         d=decision_summary(data); return f"Decision Tracker đang có {d['open']} mục mở, trong đó {d['high']} mục ưu tiên cao; tiến độ bình quân {d['avg_progress']:.0%}."
-    return f"Tôi chưa nhận diện rõ domain của câu hỏi. Trạng thái tổng quát: AUM {ex['aum']/1000:,.1f} nghìn tỷ, market regime {regime}, M&A signal {mna['score']:.0f}/100 và data quality {quality['score']:.0f}/100."
+    return f"Tôi chưa nhận diện rõ domain của câu hỏi. Trạng thái tổng quát: AUM {ex['aum']/1000:,.1f} nghìn tỷ, market regime {regime}, data quality {quality['score']:.0f}/100."

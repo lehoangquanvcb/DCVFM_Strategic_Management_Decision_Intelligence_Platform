@@ -3,13 +3,11 @@ from __future__ import annotations
 import pandas as pd
 
 from analytics import executive_metrics, fund_performance, business_plan_kpi, compliance_cockpit, product_profitability
-from forensic import mna_signal
 
 
 def generate_advisories(data: dict[str, pd.DataFrame], regime: str) -> pd.DataFrame:
     ex = executive_metrics(data)
     perf = fund_performance(data)
-    mna = mna_signal(data)
     rows = []
 
     def add(priority, domain, observation, diagnosis, implication, action, owner):
@@ -22,8 +20,6 @@ def generate_advisories(data: dict[str, pd.DataFrame], regime: str) -> pd.DataFr
         add("HIGH", "Investment", f"{weak['Fund_Code']} has the weakest 3-month return at {weak['Return_3M']:.1%}.", "Short-horizon performance weakness requires sector/stock attribution.", "Continued weakness may raise redemption and reputation risk.", "Run attribution challenge and define a 30-day remediation/communication plan.", "CIO")
     if regime in {"RISK-OFF", "STRESS"}:
         add("HIGH", "Market Risk", f"Market regime is {regime}.", "Momentum/drawdown indicators show a less supportive risk environment.", "Equity AUM, revenues and fund liquidity buffers may be affected.", "Re-test liquidity, concentration and redemption scenarios weekly.", "CRO / CIO")
-    if mna["score"] >= 50:
-        add("HIGH", "Ownership & Governance", f"M&A monitoring signal is {mna['score']:.0f}/100 ({mna['level']}).", "Multiple ownership/governance clues are present, but evidence remains incomplete.", "Board and shareholder preparedness is more valuable than rumor confirmation.", "Complete evidence gaps, map regulatory approvals and prepare four ownership scenarios.", "Board Secretariat / Strategy")
     risks = data["Risk_Indicators"].copy()
     risks["Current_Score"] = pd.to_numeric(risks["Current_Score"], errors="coerce")
     for _, risk in risks.nlargest(2, "Current_Score").iterrows():
@@ -38,6 +34,12 @@ def generate_advisories(data: dict[str, pd.DataFrame], regime: str) -> pd.DataFr
         add("HIGH", "Compliance", f"{len(exceptions)} controls require action.", "Control evidence or headroom is not yet satisfactory.", "Unresolved items can create regulatory, disclosure or governance exposure.", "Close evidence gaps by due date and escalate overdue items to the responsible committee.", "CRO / Compliance")
     low_margin = product_profitability(data).nsmallest(1, "Contribution_Margin_Pct").iloc[0]
     add("MEDIUM", "Product Economics", f"{low_margin['Fund_Code']} has the lowest contribution margin at {low_margin['Contribution_Margin_Pct']:.1%}.", "Product scale, fee yield and allocated cost are not fully aligned.", "Low-margin products can dilute operating leverage despite AUM growth.", "Validate product-level cost allocation and prepare a scale/reprice/reposition decision.", "CFO / Product")
+    operating = data.get("Operating_KPI", pd.DataFrame()).copy()
+    if not operating.empty:
+        attention = operating[operating["Status"].astype(str).str.lower().isin(["action", "off track"])]
+        if not attention.empty:
+            r = attention.iloc[0]
+            add("HIGH", "Operations", f"{r['KPI']} is marked {r['Status']}.", "The operating control is outside target or requires accountable closure.", "Service quality, reporting discipline or management execution may weaken.", str(r["Management_Action"]), str(r["Owner"]))
     order = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
     out = pd.DataFrame(rows)
     if out.empty:

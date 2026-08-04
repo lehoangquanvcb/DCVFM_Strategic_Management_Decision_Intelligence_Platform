@@ -1,21 +1,21 @@
 from __future__ import annotations
 
-import json, math
+import json
 from datetime import date
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import streamlit as st
 
 from advisory import generate_advisories
-from analytics import advanced_fund_analytics, attribution, aum_bridge, competitor_score, executive_metrics, flow_table, integrated_financial_model, stress_test, product_profitability, distribution_intelligence, investor_ews, compliance_cockpit, product_strategy, business_plan_kpi, valuation_scenarios, decision_summary
+from analytics import advanced_fund_analytics, attribution, aum_bridge, competitor_score, executive_metrics, flow_table, integrated_financial_model, stress_test, product_profitability, distribution_intelligence, investor_ews, compliance_cockpit, product_strategy, business_plan_kpi, decision_summary
 from config import APP_NAME, APP_VERSION, AUTHOR, DEFAULT_MASTER, COLORS
 from copilot import answer as copilot_answer
 from data_loader import company_profile, config_map, load_master, validate_master
 from data_quality import action_summary, quality_summary, quality_table
 from export_pack import board_pack_pdf, board_pack_pptx
-from forensic import buyer_scenarios, entity_network, evidence_registry, mna_signal, regulatory_scenarios
-from market_data import get_market_data, market_metrics, market_regime
+from market_data import get_market_data, market_metrics, market_regime, market_technical_frame
 from ui import dataframe, header, inject_css
 from vnstock_auth import configure_vnstock_auth, resolve_api_key
 
@@ -32,7 +32,7 @@ def cached_auth(api_key): return configure_vnstock_auth(api_key)
 with st.sidebar:
     st.markdown("### Control Panel")
     uploaded=st.file_uploader("Upload Master Excel",type=["xlsx"])
-    st.caption("No upload: packaged V4 Master is used.")
+    st.caption("No upload: packaged V4.2 Master is used.")
     if st.button("Refresh cached data",use_container_width=True): st.cache_data.clear(); st.rerun()
 
 source=uploaded.getvalue() if uploaded else str(DEFAULT_MASTER)
@@ -66,7 +66,7 @@ with st.sidebar:
     st.caption(f"Master {profile.get('Model_Version',APP_VERSION)} • {profile.get('Platform_As_of','')}")
 
 market,market_source,market_error=cached_market(symbol,start.isoformat(),date.today().isoformat(),str(cfg.get("Preferred_Source","VCI")),fallback,float(cfg.get("Offline_Base_Index",1265)))
-mm=market_metrics(market); regime=market_regime(mm); ex=executive_metrics(data); mna=mna_signal(data); quality=quality_summary(data); actions=action_summary(data); advice=generate_advisories(data,regime)
+mm=market_metrics(market); regime=market_regime(mm); ex=executive_metrics(data); quality=quality_summary(data); actions=action_summary(data); advice=generate_advisories(data,regime); plan_kpis=business_plan_kpi(data); offtrack=int((plan_kpis["Status"]=="OFF TRACK").sum())
 header(APP_VERSION,AUTHOR)
 if market_error:
     if market_source == "Vnstock Cache":
@@ -74,11 +74,11 @@ if market_error:
     else:
         st.info("Live Vnstock and local cache are unavailable; the platform is using a clearly labelled illustrative fallback. Company data still comes from Master Excel.")
 
-tabs=st.tabs(["01 Executive","02 Fund Performance","03 AUM & Flows","04 Portfolio","05 ETF","06 Market & Macro","07 Competitors","08 Financials","09 Risk & EWS","10 Stress Test","11 Ownership","12 M&A Forensics","13 Buyer & Deal","14 Events & Data Quality","15 Advisory & Actions","16 Board Pack & Copilot","17 Commercial Intelligence","18 Investor & Compliance","19 Product & Business Plan","20 Valuation & Decisions"])
+tabs=st.tabs(["01 Executive","02 Fund Performance","03 AUM & Flows","04 Portfolio","05 ETF","06 Market, Liquidity & Macro","07 Competitors","08 Financials","09 Risk & EWS","10 Stress Test","11 Ownership & Governance","12 Events & Data Quality","13 Advisory & Actions","14 Board Pack & Copilot","15 Commercial Intelligence","16 Investor & Compliance","17 Product & Business Plan","18 Management Decisions"])
 
 with tabs[0]:
     cols=st.columns(8)
-    vals=[("AUM",f"{ex['aum']/1000:,.1f} tn",f"{ex['aum_growth']:.1%} MoM"),("3M net flow",f"{ex['flow_3m']:,.0f} bn",None),("VN-Index",f"{mm['level']:,.1f}",f"{mm['return_3m']:.1%} / 3M"),("Regime",regime,None),("Risk",f"{ex['risk_score']:.0f}/100",None),("M&A signal",f"{mna['score']:.0f}/100",mna['level']),("Data quality",f"{quality['score']:.0f}/100",f"{quality['overdue']} overdue"),("Actions",str(actions['open']),f"{actions['avg_progress']:.0%} progress")]
+    vals=[("AUM",f"{ex['aum']/1000:,.1f} tn",f"{ex['aum_growth']:.1%} MoM"),("3M net flow",f"{ex['flow_3m']:,.0f} bn",None),("VN-Index",f"{mm['level']:,.1f}",f"{mm['return_3m']:.1%} / 3M"),("Regime",regime,None),("Risk",f"{ex['risk_score']:.0f}/100",None),("Off-track KPIs",str(offtrack),"FY forecast"),("Data quality",f"{quality['score']:.0f}/100",f"{quality['overdue']} overdue"),("Actions",str(actions['open']),f"{actions['avg_progress']:.0%} progress")]
     for c,(label,value,delta) in zip(cols,vals): c.metric(label,value,delta)
     left,right=st.columns([1.6,1])
     with left:
@@ -119,8 +119,20 @@ with tabs[4]:
     ef=data["Fund_Flows"].query("Fund_Code in @etfs"); fig=px.bar(ef,x="Date",y="Net_Flow_VND_bn",color="Fund_Code",barmode="group",title="ETF creation/redemption proxy"); fig.update_layout(template="plotly_dark",height=440); st.plotly_chart(fig,use_container_width=True)
 
 with tabs[5]:
-    c1,c2,c3,c4=st.columns(4); c1.metric("Source",market_source); c2.metric("1M return",f"{mm['return_1m']:.1%}"); c3.metric("Volatility",f"{mm['volatility']:.1%}"); c4.metric("Drawdown",f"{mm['drawdown']:.1%}")
-    fig=go.Figure(data=[go.Candlestick(x=market["date"],open=market["open"],high=market["high"],low=market["low"],close=market["close"])]); fig.update_layout(template="plotly_dark",height=500,title=f"{symbol} history",xaxis_rangeslider_visible=False); st.plotly_chart(fig,use_container_width=True)
+    k=st.columns(8); market_kpis=[("VN-Index",f"{mm['level']:,.1f}"),("1M return",f"{mm['return_1m']:.1%}"),("3M return",f"{mm['return_3m']:.1%}"),("YTD return",f"{mm['return_ytd']:.1%}"),("20D volatility",f"{mm['volatility']:.1%}"),("Drawdown",f"{mm['drawdown']:.1%}"),("52W high gap",f"{mm['distance_52w_high']:.1%}"),("Regime",regime)]
+    for col,(label,value) in zip(k,market_kpis): col.metric(label,value)
+    st.caption(f"Market source: {market_source} • MA20 {mm['ma20']:,.1f} • MA50 {mm['ma50']:,.1f} • MA200 {mm['ma200']:,.1f}")
+    tech=market_technical_frame(market)
+    fig=make_subplots(rows=2,cols=1,shared_xaxes=True,vertical_spacing=.05,row_heights=[.75,.25])
+    fig.add_trace(go.Candlestick(x=tech["date"],open=tech["open"],high=tech["high"],low=tech["low"],close=tech["close"],name=symbol),row=1,col=1)
+    for name,color in [("MA20","#17C3B2"),("MA50","#F59E0B"),("MA200","#A78BFA")]: fig.add_trace(go.Scatter(x=tech["date"],y=tech[name],name=name,line=dict(width=1.4,color=color)),row=1,col=1)
+    fig.add_trace(go.Bar(x=tech["date"],y=tech["volume"],name="Volume",marker_color="#2F80ED"),row=2,col=1); fig.add_trace(go.Scatter(x=tech["date"],y=tech["Volume_MA20"],name="Volume MA20",line=dict(color="#F8FAFC",width=1)),row=2,col=1)
+    fig.update_layout(template="plotly_dark",height=650,title=f"{symbol}: price, trend and liquidity",xaxis_rangeslider_visible=False,legend_orientation="h",legend_y=1.02); st.plotly_chart(fig,use_container_width=True)
+    macro=data["Macro_Indicators"].copy(); macro["Current_Value"]=pd.to_numeric(macro["Current_Value"],errors="coerce"); macro["Previous_Value"]=pd.to_numeric(macro["Previous_Value"],errors="coerce"); macro["Change"]=macro["Current_Value"]-macro["Previous_Value"]
+    st.markdown("### Macro pulse")
+    macro_cards=st.columns(6)
+    for col,(_,r) in zip(macro_cards,macro.head(6).iterrows()): col.metric(r["Indicator"],f"{r['Current_Value']:,.2f} {r['Unit']}",f"{r['Change']:+,.2f}")
+    dataframe(macro[["As_of","Indicator","Current_Value","Previous_Value","Change","Unit","Direction","Market_Implication","Source_Status","Owner"]])
 
 with tabs[6]:
     comp=competitor_score(data); name_col=comp.columns[0]; fig=px.bar(comp,x="Competitive_Score",y=name_col,orientation="h",color="Competitive_Score",color_continuous_scale="Blues",title="Competitive position score"); fig.update_layout(template="plotly_dark",height=430); st.plotly_chart(fig,use_container_width=True); dataframe(comp)
@@ -141,40 +153,24 @@ with tabs[10]:
     own=data["Shareholders"].copy(); own["Ownership_Pct"]=pd.to_numeric(own["Ownership_Pct"],errors="coerce"); fig=px.pie(own,names="Shareholder",values="Ownership_Pct",hole=.55,title="Ownership structure"); fig.update_layout(template="plotly_dark",height=430); st.plotly_chart(fig,use_container_width=True); dataframe(data["Board_Events"])
 
 with tabs[11]:
-    c=st.columns(4); c[0].metric("Forensic signal",f"{mna['score']:.0f}/100"); c[1].metric("Level",mna['level']); c[2].metric("Evidence items",mna['evidence_count']); c[3].metric("Weighted points",f"{mna['raw_points']:.0f}"); st.caption("Signal score is a monitoring indicator—not transaction probability or allegation.")
-    ev=evidence_registry(data); fig=px.bar(ev.sort_values("Weighted_Points"),x="Weighted_Points",y="Event",orientation="h",color="Weighted_Points",color_continuous_scale="RdYlGn",title="Evidence contribution"); fig.update_layout(template="plotly_dark",height=430); st.plotly_chart(fig,use_container_width=True)
-    st.markdown("### Entity network")
-    net=entity_network(data); nodes=sorted(set(net["Source_Entity"]).union(net["Target_Entity"])); pos={n:(math.cos(2*math.pi*i/len(nodes)),math.sin(2*math.pi*i/len(nodes))) for i,n in enumerate(nodes)}; fig=go.Figure()
-    for _,r in net.iterrows(): fig.add_trace(go.Scatter(x=[pos[r.Source_Entity][0],pos[r.Target_Entity][0]],y=[pos[r.Source_Entity][1],pos[r.Target_Entity][1]],mode="lines",line=dict(color="#45617f",width=2),hovertext=r.Relationship,hoverinfo="text",showlegend=False))
-    fig.add_trace(go.Scatter(x=[pos[n][0] for n in nodes],y=[pos[n][1] for n in nodes],mode="markers+text",text=nodes,textposition="top center",marker=dict(size=22,color="#2F80ED",line=dict(width=2,color="#8ec5ff")),showlegend=False)); fig.update_layout(template="plotly_dark",height=520,xaxis=dict(visible=False),yaxis=dict(visible=False),title="Relationship map – evidence level remains visible in Master"); st.plotly_chart(fig,use_container_width=True); dataframe(net)
-
-with tabs[12]:
-    buyers=buyer_scenarios(data); a,b=st.columns([1.2,1])
-    with a:
-        fig=px.bar(buyers,x="Weighted_Score",y="Scenario",orientation="h",color="Weighted_Score",range_x=[0,100],color_continuous_scale="Blues",title="Strategic buyer scenario ranking"); fig.update_layout(template="plotly_dark",height=420); st.plotly_chart(fig,use_container_width=True)
-    with b:
-        stake=st.slider("Illustrative acquired stake",0,100,51,5); buyer_type=st.radio("Buyer type",["Foreign","Domestic"],horizontal=True); control="Yes" if stake>50 else "No / depends on rights"; tender="Review required" if stake>=25 else "Monitor"; foreign="Required" if buyer_type=="Foreign" else "Not primary"; st.metric("Control change screen",control); st.metric("Tender-offer screen",tender); st.metric("Foreign ownership screen",foreign); st.caption("Preliminary screen only; not legal advice.")
-    dataframe(regulatory_scenarios(data).style.format({"Stake_Acquired_Pct":"{:.0%}"}))
-
-with tabs[13]:
     q=quality_table(data); c=st.columns(4); c[0].metric("Quality score",f"{quality['score']:.0f}/100"); c[1].metric("Verified fields",f"{quality['verified_pct']:.0%}"); c[2].metric("Assumption domains",f"{quality['assumption_pct']:.0%}"); c[3].metric("Overdue domains",quality['overdue'])
     fig=px.bar(q,x="Quality_Score",y="Data_Domain",orientation="h",color="Quality_Score",range_x=[0,100],color_continuous_scale="RdYlGn",title="Data lineage and quality by domain"); fig.update_layout(template="plotly_dark",height=430); st.plotly_chart(fig,use_container_width=True); dataframe(q)
-    st.markdown("### News and events"); events=data.get("News_Events",data["M&A_Events"]).sort_values("Date",ascending=False); dataframe(events)
+    st.markdown("### News and operating events"); events=data["News_Events"].sort_values("Date",ascending=False); dataframe(events)
 
-with tabs[14]:
+with tabs[12]:
     for _,r in advice.iterrows(): st.markdown(f"<div class='advisory-card'><b>{r['Priority']} · {r['Domain']}</b><br><b>Observation:</b> {r['Observation']}<br><b>Diagnosis:</b> {r['Diagnosis']}<br><b>Implication:</b> {r['Implication']}<br><b>Recommendation:</b> {r['Recommended_Action']}<br><span class='muted'>Owner: {r['Owner']}</span></div>",unsafe_allow_html=True)
     st.markdown("### Management Action Tracker"); tracker=data.get("Action_Tracker",pd.DataFrame()).copy(); dataframe(tracker.style.format({"Progress_Pct":"{:.0%}"}))
 
-with tabs[15]:
+with tabs[13]:
     st.subheader("Board / Executive Pack")
-    pdf=board_pack_pdf(ex,mm,regime,mna,quality,advice); pptx=board_pack_pptx(ex,regime,mna,quality,advice); pack={"as_of":str(ex["as_of"]),"executive_metrics":ex,"market_metrics":mm,"market_regime":regime,"mna_signal":mna,"data_quality":quality,"top_recommendations":advice.head(5).to_dict(orient="records")}
-    c=st.columns(4); c[0].download_button("Board Pack PDF",pdf,"DCVFM_Board_Pack_V4.pdf","application/pdf",use_container_width=True); c[1].download_button("Board Pack PPTX",pptx,"DCVFM_Board_Pack_V4.pptx","application/vnd.openxmlformats-officedocument.presentationml.presentation",use_container_width=True); c[2].download_button("Board Pack JSON",json.dumps(pack,default=str,ensure_ascii=False,indent=2),"DCVFM_Board_Pack_V4.json","application/json",use_container_width=True); c[3].download_button("Recommendations CSV",advice.to_csv(index=False).encode("utf-8-sig"),"DCVFM_Recommendations_V4.csv","text/csv",use_container_width=True)
+    pdf=board_pack_pdf(ex,mm,regime,quality,advice,offtrack,actions); pptx=board_pack_pptx(ex,regime,quality,advice,offtrack,actions); pack={"as_of":str(ex["as_of"]),"executive_metrics":ex,"market_metrics":mm,"market_regime":regime,"off_track_kpis":offtrack,"open_actions":actions,"data_quality":quality,"top_recommendations":advice.head(5).to_dict(orient="records")}
+    c=st.columns(4); c[0].download_button("Board Pack PDF",pdf,"DCVFM_Board_Pack_V4_2.pdf","application/pdf",use_container_width=True); c[1].download_button("Board Pack PPTX",pptx,"DCVFM_Board_Pack_V4_2.pptx","application/vnd.openxmlformats-officedocument.presentationml.presentation",use_container_width=True); c[2].download_button("Board Pack JSON",json.dumps(pack,default=str,ensure_ascii=False,indent=2),"DCVFM_Board_Pack_V4_2.json","application/json",use_container_width=True); c[3].download_button("Recommendations CSV",advice.to_csv(index=False).encode("utf-8-sig"),"DCVFM_Recommendations_V4_2.csv","text/csv",use_container_width=True)
     st.markdown("### Intelligence Copilot")
-    question=st.text_input("Ask about AUM, funds, alpha, M&A, buyers, financials or data quality",placeholder="Ví dụ: Vì sao AUM tăng nhưng lợi nhuận tăng chậm?")
+    question=st.text_input("Ask about AUM, funds, market, macro, financials, operations or data quality",placeholder="Ví dụ: KPI vận hành nào đang cần xử lý?")
     if question: st.markdown(f"<div class='advisory-card'>{copilot_answer(question,data,regime)}</div>",unsafe_allow_html=True)
-    st.caption("Copilot V4 is deterministic and grounded in the loaded Master; it does not make external factual claims.")
+    st.caption("Copilot V4.2 is deterministic and grounded in the loaded Master; it does not make external factual claims.")
 
-with tabs[16]:
+with tabs[14]:
     prof=product_profitability(data); dist=distribution_intelligence(data)
     c1,c2,c3,c4=st.columns(4)
     c1.metric("Product revenue",f"{prof['Revenue_VND_bn'].sum():,.0f} bn")
@@ -187,7 +183,7 @@ with tabs[16]:
     dataframe(prof.style.format({"Effective_Fee_Pct":"{:.2%}","Contribution_Margin_Pct":"{:.1%}"}))
     dataframe(dist.style.format({"Retention_Pct":"{:.1%}","AUM_Share_Pct":"{:.1%}","Cost_per_Net_Sales":"{:.2f}"}))
 
-with tabs[17]:
+with tabs[15]:
     inv=investor_ews(data); compc=compliance_cockpit(data)
     a,b=st.columns(2)
     a.plotly_chart(px.bar(inv,x="Cohort",y="Risk_Score",color="Risk_Level",title="Investor redemption early-warning score").update_layout(template="plotly_dark",height=420),use_container_width=True)
@@ -196,7 +192,7 @@ with tabs[17]:
     dataframe(inv.style.format({"Underperformance_3M_Pct":"{:.1%}","Concentration_Pct":"{:.1%}"}))
     dataframe(compc)
 
-with tabs[18]:
+with tabs[16]:
     products=product_strategy(data); kpis=business_plan_kpi(data)
     a,b=st.columns(2)
     a.plotly_chart(px.bar(products,x="Weighted_Score",y="Product_Idea",orientation="h",color="Decision",range_x=[0,10],title="Product strategy screening").update_layout(template="plotly_dark",height=430),use_container_width=True)
@@ -204,13 +200,13 @@ with tabs[18]:
     dataframe(products)
     dataframe(kpis.style.format({"Variance_Pct":"{:.1%}","Forecast_vs_Plan_Pct":"{:.1%}"}))
 
-with tabs[19]:
-    vals=valuation_scenarios(data); decisions=data["Decision_Tracker"].copy(); ds=decision_summary(data)
+with tabs[17]:
+    decisions=data["Decision_Tracker"].copy(); ds=decision_summary(data); ops=data["Operating_KPI"].copy()
     c1,c2,c3=st.columns(3); c1.metric("Open decisions",ds["open"]); c2.metric("High priority",ds["high"]); c3.metric("Average progress",f"{ds['avg_progress']:.0%}")
     a,b=st.columns(2)
-    a.plotly_chart(px.bar(vals,x="Purchase_Price_VND_bn",y="Scenario",orientation="h",color="Evidence_Strength",title="Illustrative deal value by scenario").update_layout(template="plotly_dark",height=430),use_container_width=True)
+    ops["Current_Value"]=pd.to_numeric(ops["Current_Value"],errors="coerce"); ops["Target_Value"]=pd.to_numeric(ops["Target_Value"],errors="coerce")
+    a.plotly_chart(px.bar(ops,x="Current_Value",y="KPI",orientation="h",color="Status",hover_data=["Target_Value","Unit","Owner","Management_Action"],title="Operating KPI status").update_layout(template="plotly_dark",height=430),use_container_width=True)
     decisions["Progress_Pct"]=pd.to_numeric(decisions["Progress_Pct"],errors="coerce")
     b.plotly_chart(px.bar(decisions,x="Progress_Pct",y="Decision_ID",orientation="h",color="Priority",hover_data=["Recommendation","Decision_Status","Action_Owner"],title="Decision execution progress").update_layout(template="plotly_dark",height=430,xaxis_tickformat=".0%"),use_container_width=True)
-    st.caption("Valuation scenarios are analytical illustrations—not an offer, fairness opinion or transaction confirmation.")
-    dataframe(vals.style.format({"Control_Premium_Pct":"{:.1%}","Stake_Acquired_Pct":"{:.1%}","Implied_Payback_Years":"{:.1f}"}))
+    dataframe(ops)
     dataframe(decisions.style.format({"Progress_Pct":"{:.0%}"}))

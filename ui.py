@@ -20,13 +20,34 @@ def inject_css():
     .advisory-card {background:#10233d;border-left:4px solid #2F80ED;border-radius:10px;padding:14px 16px;margin:8px 0;}
     .signal-high {color:#FCA5A5;font-weight:700}.signal-watch {color:#FCD34D;font-weight:700}.muted {color:#8FA3BF}
     h1,h2,h3 {letter-spacing:-.02em;}
+    @media (max-width: 768px) {
+        .block-container {padding-left:.65rem; padding-right:.65rem; padding-top:.65rem;}
+        div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] [data-testid="stMetric"]) {
+            display:grid !important;
+            grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+            gap:.48rem !important;
+            align-items:stretch !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] [data-testid="stMetric"]) > div[data-testid="stColumn"] {
+            width:auto !important;
+            min-width:0 !important;
+            flex:unset !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"]:nth-child(odd):last-child) > div[data-testid="stColumn"]:last-child {
+            grid-column:1 / -1;
+        }
+        [data-testid="stMetric"] {height:100%; min-height:64px; padding:7px 9px;}
+        [data-testid="stMetricLabel"] {font-size:.68rem;}
+        [data-testid="stMetricValue"] {font-size:1rem;}
+        [data-testid="stMetricDelta"] {font-size:.61rem;}
+    }
     </style>
     """, unsafe_allow_html=True)
 
 
 def header(version: str, author: str):
-    st.markdown(f"# DCVFM Strategic Intelligence & Advisory Platform")
-    st.caption(f"Fund Performance • Market Intelligence • Risk Monitoring • M&A Forensics • Executive Advisory | {version} | Author: {author}")
+    st.markdown(f"# DCVFM Corporate Performance, Risk & Management Intelligence Platform")
+    st.caption(f"Fund Performance • Market & Macro • Financial & Operating Performance • Risk & Compliance • Management Decisions | {version} | Author: {author}")
 
 
 def dataframe(df, **kwargs):

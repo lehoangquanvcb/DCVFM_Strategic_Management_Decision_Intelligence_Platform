@@ -1,21 +1,27 @@
-# DCVFM Strategic Management & Decision Intelligence Platform V4
+# DCVFM Corporate Performance, Risk & Management Intelligence Platform V4.2
 
 Author: Le Hoang Quan
 
-V4 inherits the complete V3.1 foundation—Master Excel ingestion, secure Vnstock Sponsor authentication, KBS/VCI routing, live/cache/fallback controls, fund analytics, M&A forensics, data quality, Board Packs and grounded Copilot.
+V4.2 is an operating and management platform for DCVFM. It combines controlled company inputs from one Master Excel with authenticated Vnstock market data, analytics, risk monitoring, management recommendations and decision tracking.
 
-## New V4 closed-loop management layer
+## V4.2 focus
 
-- Product profitability and break-even AUM.
-- Distribution channel economics and concentration.
-- Investor cohort/redemption early-warning signals.
-- Regulatory and compliance control cockpit.
-- Product strategy screening.
-- Actual/Budget/Forecast business-plan control.
-- Valuation and deal-structuring scenarios.
-- Decision and recommendation tracker.
+- 18 consolidated tabs for company operations and management.
+- Fund performance, AUM, flows, portfolio and ETF monitoring.
+- Upgraded Market, Liquidity & Macro Intelligence with VN-Index level, 1M/3M/YTD returns, volatility, drawdown, 52-week-high gap, regime, MA20/50/200, volume and macro pulse.
+- Financial performance, product profitability and distribution economics.
+- Business-plan Actual/Budget/Forecast control.
+- Enterprise risk, investor-redemption EWS and compliance cockpit.
+- Operating KPI, service quality and management decision tracker.
+- Advisory Engine, grounded Copilot and PDF/PPTX Board Pack.
+- Responsive KPI cards: compact on desktop and two-column mobile grid.
 
-The application has 20 consolidated tabs and the Master contains at least 38 sheets. New internal/company data is loaded only from Master Excel; Vnstock supplies market data.
+## Data architecture
+
+- Company and operating inputs: `data/DCVFM_Corporate_Performance_Risk_Management_Intelligence_Master_V4_2.xlsx`.
+- Live market inputs: authenticated Vnstock routes.
+- Failure order: live Vnstock → last successful cache → clearly labelled illustrative fallback.
+- The API key is never written to source code, Master Excel, logs or downloads.
 
 ## Run locally
 
@@ -24,8 +30,4 @@ python -m pip install -r requirements.txt
 python -m streamlit run app.py
 ```
 
-If Vnstock has already been registered locally, the app will detect that identity. On a fresh machine, set `VNSTOCK_API_KEY` as an environment variable. For Streamlit Cloud, store it in App Settings → Secrets. Never paste a real key into source code or Master Excel.
-
-## Evidence discipline
-
-Rows labelled `Assumption`, `Working hypothesis` or `Analytical hypothesis` must be replaced or verified before formal use. M&A, redemption-risk and compliance scores are monitoring signals—not transaction probabilities, legal conclusions or allegations. Valuation scenarios are not an offer or fairness opinion.
+For Streamlit Community Cloud, store `VNSTOCK_API_KEY` in App Settings → Secrets. Rows labelled `Assumption` must be replaced or verified before formal management or regulatory use.

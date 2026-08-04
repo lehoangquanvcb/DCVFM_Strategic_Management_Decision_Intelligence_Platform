@@ -223,15 +223,6 @@ def business_plan_kpi(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return df
 
 
-def valuation_scenarios(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    df = data["Valuation_Scenarios"].copy()
-    for c in ["Base_Equity_Value_VND_bn", "Control_Premium_Pct", "Synergy_Value_VND_bn", "Stake_Acquired_Pct", "Annual_Synergy_VND_bn"]: df[c] = pd.to_numeric(df[c], errors="coerce")
-    df["Equity_Value_VND_bn"] = df["Base_Equity_Value_VND_bn"] * (1 + df["Control_Premium_Pct"]) + df["Synergy_Value_VND_bn"]
-    df["Purchase_Price_VND_bn"] = df["Equity_Value_VND_bn"] * df["Stake_Acquired_Pct"]
-    df["Implied_Payback_Years"] = df["Purchase_Price_VND_bn"] / df["Annual_Synergy_VND_bn"].replace(0, np.nan)
-    return df
-
-
 def decision_summary(data: dict[str, pd.DataFrame]) -> dict:
     df = data["Decision_Tracker"].copy()
     progress = pd.to_numeric(df["Progress_Pct"], errors="coerce").fillna(0)
