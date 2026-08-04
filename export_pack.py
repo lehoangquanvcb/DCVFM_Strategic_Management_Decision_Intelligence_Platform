@@ -20,7 +20,7 @@ def board_pack_pdf(ex, market, regime, quality, advice, offtrack, actions) -> by
     title = ParagraphStyle("titlex", parent=styles["Title"], fontName="Helvetica-Bold", fontSize=18, textColor=colors.HexColor("#081426"), alignment=TA_CENTER, spaceAfter=12)
     h = ParagraphStyle("hx", parent=styles["Heading2"], fontName="Helvetica-Bold", textColor=colors.HexColor("#1F6FEB"), spaceBefore=8, spaceAfter=6)
     body = styles["BodyText"]
-    story = [Paragraph("DCVFM Corporate Performance, Risk & Management Intelligence – Board Pack", title), Paragraph("V4.2 | Author: Le Hoang Quan", styles["Normal"]), Spacer(1, 8)]
+    story = [Paragraph("DCVFM Corporate Performance, Risk & Management Intelligence – Board Pack", title), Paragraph("V4.3 | Author: Le Hoang Quan", styles["Normal"]), Spacer(1, 8)]
     kpis = [["AUM", "Market regime", "Enterprise risk", "Off-track KPIs", "Data quality"], [f"{ex['aum']/1000:,.1f} tn VND", regime, f"{ex['risk_score']:.0f}/100", str(offtrack), f"{quality['score']:.0f}/100"]]
     t = Table(kpis, colWidths=[34*mm]*5)
     t.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),colors.HexColor("#081426")),("TEXTCOLOR",(0,0),(-1,0),colors.white),("ALIGN",(0,0),(-1,-1),"CENTER"),("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("GRID",(0,0),(-1,-1),0.4,colors.HexColor("#CBD5E1")),("BOTTOMPADDING",(0,0),(-1,-1),7),("TOPPADDING",(0,0),(-1,-1),7)]))
@@ -42,7 +42,7 @@ def board_pack_pptx(ex, regime, quality, advice, offtrack, actions) -> bytes:
         box=s.shapes.add_textbox(Inches(.7),Inches(1.5),Inches(12),Inches(1.2)); p=box.text_frame.paragraphs[0]; p.text=title; p.font.size=Pt(30); p.font.bold=True; p.font.color.rgb=white
         sub=s.shapes.add_textbox(Inches(.72),Inches(3),Inches(11.5),Inches(.8)); q=sub.text_frame.paragraphs[0]; q.text=subtitle; q.font.size=Pt(15); q.font.color.rgb=RGBColor(143,163,191)
         return s
-    title_slide("DCVFM Corporate Performance, Risk & Management Intelligence Platform", "Board Pack V4.2 | Author: Le Hoang Quan")
+    title_slide("DCVFM Corporate Performance, Risk & Management Intelligence Platform", "Board Pack V4.3 | Author: Le Hoang Quan")
     s=title_slide("Executive control room", f"As of {ex['as_of']}")
     values=[("AUM",f"{ex['aum']/1000:,.1f} tn VND"),("Market regime",regime),("Enterprise risk",f"{ex['risk_score']:.0f}/100"),("Off-track KPIs",str(offtrack)),("Data quality",f"{quality['score']:.0f}/100")]
     for i,(label,value) in enumerate(values):

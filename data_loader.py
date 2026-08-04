@@ -15,6 +15,8 @@ V4_MANAGEMENT_SHEETS = {
     "Regulatory_Compliance", "Product_Strategy", "Business_Plan_KPI",
     "Decision_Tracker",
     "Macro_Indicators", "Operating_KPI",
+    "Scenario_Assumptions", "Financial_Impact_Model", "Scenario_Checks",
+    "News_Events",
 }
 
 

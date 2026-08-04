@@ -1,12 +1,19 @@
-# DCVFM Corporate Performance, Risk & Management Intelligence Platform V4.2
+# DCVFM Corporate Performance, Risk & Management Intelligence Platform V4.3
+
+Maintenance update: the Market, Liquidity & Macro tab now attempts row-level live
+macro retrieval through Vnstock Data and falls back to the labelled Master row
+when an endpoint is unavailable. News & Operating Events also tolerates missing
+or alternative date fields without stopping the Streamlit app.
 
 Author: Le Hoang Quan
 
-V4.2 is an operating and management platform for DCVFM. It combines controlled company inputs from one Master Excel with authenticated Vnstock market data, analytics, risk monitoring, management recommendations and decision tracking.
+V4.3 adds a scenario-to-financial-statements engine to the complete V4.2 operating platform.
 
-## V4.2 focus
+## V4.3 focus
 
-- 18 consolidated tabs for company operations and management.
+- 19 consolidated tabs for company operations and management.
+- Financial Impact tab translating market and management scenarios into AUM, revenue, PBT, NPAT, cash flow, assets, equity, ROA and ROE.
+- Formula-driven scenario assumptions, financial impact model and reconciliation checks in the Master Excel.
 - Fund performance, AUM, flows, portfolio and ETF monitoring.
 - Upgraded Market, Liquidity & Macro Intelligence with VN-Index level, 1M/3M/YTD returns, volatility, drawdown, 52-week-high gap, regime, MA20/50/200, volume and macro pulse.
 - Financial performance, product profitability and distribution economics.
@@ -18,7 +25,7 @@ V4.2 is an operating and management platform for DCVFM. It combines controlled c
 
 ## Data architecture
 
-- Company and operating inputs: `data/DCVFM_Corporate_Performance_Risk_Management_Intelligence_Master_V4_2.xlsx`.
+- Company and operating inputs: `data/DCVFM_Corporate_Performance_Risk_Management_Intelligence_Master_V4_3.xlsx`.
 - Live market inputs: authenticated Vnstock routes.
 - Failure order: live Vnstock → last successful cache → clearly labelled illustrative fallback.
 - The API key is never written to source code, Master Excel, logs or downloads.

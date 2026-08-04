@@ -228,3 +228,32 @@ def decision_summary(data: dict[str, pd.DataFrame]) -> dict:
     progress = pd.to_numeric(df["Progress_Pct"], errors="coerce").fillna(0)
     open_mask = ~df["Decision_Status"].isin(["Closed", "Rejected"])
     return {"open": int(open_mask.sum()), "high": int(((df["Priority"] == "HIGH") & open_mask).sum()), "avg_progress": float(progress[open_mask].mean() if open_mask.any() else 0)}
+
+def scenario_financial_impact(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Translate market and management scenarios into P&L, cash flow and balance-sheet impacts."""
+    assumptions = data["Scenario_Assumptions"].copy()
+    amap = dict(zip(assumptions["Driver"].astype(str), assumptions["Value"]))
+    def n(key, default=0.0):
+        try: return float(amap.get(key, default))
+        except (TypeError, ValueError): return float(default)
+    beg_aum=n("Beginning AUM",140000); fee=n("Base Fee Yield",.00855)
+    personnel=n("Base Personnel Cost",455); other_opex=n("Base Other Opex",360); tax_rate=n("Effective Tax Rate",.14)
+    open_cash=n("Opening Cash",650); open_ar=n("Opening Receivables",250); open_other=n("Opening Other Assets",900)
+    open_liab=n("Opening Liabilities",350); open_equity=n("Opening Equity",1450); ar_days=n("Base AR Days",73.5); min_cash=n("Minimum Cash Threshold",300)
+    rows=[]
+    for _,s in data["Scenarios"].iterrows():
+        market=float(s["Market_Return_Shock_Pct"]); flow_pct=float(s["Net_Flow_Pct_Beg_AUM"]); fee_bps=float(s["Fee_Yield_Change_bps"])
+        pchg=float(s["Personnel_Cost_Change_Pct"]); ochg=float(s["Other_Opex_Change_Pct"]); oneoff=float(s["One_Off_Cost_VND_bn"])
+        capex=float(s["Capex_VND_bn"]); ar_delta_days=float(s["AR_Days_Change"]); payout=float(s["Dividend_Payout_Pct"])
+        net_flow=beg_aum*flow_pct; end_aum=beg_aum*(1+market)+net_flow; avg_aum=(beg_aum+end_aum)/2
+        eff_fee=max(fee+fee_bps/10000,0); revenue=avg_aum*eff_fee; personnel_cost=personnel*(1+pchg); other_cost=other_opex*(1+ochg)+oneoff
+        pbt=revenue-personnel_cost-other_cost; tax=max(pbt,0)*tax_rate; npat=pbt-tax; pbt_margin=pbt/revenue if revenue else 0
+        end_ar=revenue/365*max(ar_days+ar_delta_days,0); delta_ar=end_ar-open_ar; cfo=npat-delta_ar; cfi=-capex; dividends=-max(npat,0)*payout
+        end_cash=open_cash+cfo+cfi+dividends; end_other=open_other+capex; assets=end_cash+end_ar+end_other; equity=open_equity+npat+dividends
+        balance=assets-open_liab-equity; roa=npat/((open_cash+open_ar+open_other+assets)/2); roe=npat/((open_equity+equity)/2)
+        rows.append({"Scenario":s["Scenario"],"Market_Return_Pct":market,"Net_Flow_VND_bn":net_flow,"Ending_AUM_VND_bn":end_aum,"Average_AUM_VND_bn":avg_aum,"Fee_Yield_Pct":eff_fee,"Revenue_VND_bn":revenue,"Personnel_VND_bn":personnel_cost,"Other_Opex_VND_bn":other_cost,"PBT_VND_bn":pbt,"Tax_VND_bn":tax,"NPAT_VND_bn":npat,"PBT_Margin_Pct":pbt_margin,"CFO_VND_bn":cfo,"Capex_VND_bn":capex,"Dividend_VND_bn":-dividends,"Ending_Cash_VND_bn":end_cash,"Total_Assets_VND_bn":assets,"Ending_Equity_VND_bn":equity,"ROA_Pct":roa,"ROE_Pct":roe,"Cash_Headroom_VND_bn":end_cash-min_cash,"Balance_Check_VND_bn":balance})
+    out=pd.DataFrame(rows); base=out.iloc[0]
+    out["Revenue_vs_Base_VND_bn"]=out["Revenue_VND_bn"]-base["Revenue_VND_bn"]
+    out["PBT_vs_Base_VND_bn"]=out["PBT_VND_bn"]-base["PBT_VND_bn"]
+    out["NPAT_vs_Base_VND_bn"]=out["NPAT_VND_bn"]-base["NPAT_VND_bn"]
+    return out

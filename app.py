@@ -9,13 +9,14 @@ from plotly.subplots import make_subplots
 import streamlit as st
 
 from advisory import generate_advisories
-from analytics import advanced_fund_analytics, attribution, aum_bridge, competitor_score, executive_metrics, flow_table, integrated_financial_model, stress_test, product_profitability, distribution_intelligence, investor_ews, compliance_cockpit, product_strategy, business_plan_kpi, decision_summary
+from analytics import advanced_fund_analytics, attribution, aum_bridge, competitor_score, executive_metrics, flow_table, integrated_financial_model, stress_test, product_profitability, distribution_intelligence, investor_ews, compliance_cockpit, product_strategy, business_plan_kpi, decision_summary, scenario_financial_impact
 from config import APP_NAME, APP_VERSION, AUTHOR, DEFAULT_MASTER, COLORS
 from copilot import answer as copilot_answer
 from data_loader import company_profile, config_map, load_master, validate_master
 from data_quality import action_summary, quality_summary, quality_table
 from export_pack import board_pack_pdf, board_pack_pptx
 from market_data import get_market_data, market_metrics, market_regime, market_technical_frame
+from macro_data import get_macro_indicators
 from ui import dataframe, header, inject_css
 from vnstock_auth import configure_vnstock_auth, resolve_api_key
 
@@ -26,13 +27,15 @@ inject_css()
 def cached_master(source): return load_master(source)
 @st.cache_data(ttl=3600, show_spinner=False)
 def cached_market(symbol,start,end,source,fallback,base): return get_market_data(symbol,start,end,source,fallback,base)
+@st.cache_data(ttl=3600, show_spinner=False)
+def cached_macro(master): return get_macro_indicators(master)
 @st.cache_resource(show_spinner=False)
 def cached_auth(api_key): return configure_vnstock_auth(api_key)
 
 with st.sidebar:
     st.markdown("### Control Panel")
     uploaded=st.file_uploader("Upload Master Excel",type=["xlsx"])
-    st.caption("No upload: packaged V4.2 Master is used.")
+    st.caption("No upload: packaged V4.3 Master is used.")
     if st.button("Refresh cached data",use_container_width=True): st.cache_data.clear(); st.rerun()
 
 source=uploaded.getvalue() if uploaded else str(DEFAULT_MASTER)
@@ -74,7 +77,7 @@ if market_error:
     else:
         st.info("Live Vnstock and local cache are unavailable; the platform is using a clearly labelled illustrative fallback. Company data still comes from Master Excel.")
 
-tabs=st.tabs(["01 Executive","02 Fund Performance","03 AUM & Flows","04 Portfolio","05 ETF","06 Market, Liquidity & Macro","07 Competitors","08 Financials","09 Risk & EWS","10 Stress Test","11 Ownership & Governance","12 Events & Data Quality","13 Advisory & Actions","14 Board Pack & Copilot","15 Commercial Intelligence","16 Investor & Compliance","17 Product & Business Plan","18 Management Decisions"])
+tabs=st.tabs(["01 Executive","02 Fund Performance","03 AUM & Flows","04 Portfolio","05 ETF","06 Market, Liquidity & Macro","07 Competitors","08 Financials","09 Risk & EWS","10 Stress Test","11 Ownership & Governance","12 Events & Data Quality","13 Advisory & Actions","14 Board Pack & Copilot","15 Commercial Intelligence","16 Investor & Compliance","17 Product & Business Plan","18 Management Decisions","19 Financial Impact"])
 
 with tabs[0]:
     cols=st.columns(8)
@@ -128,11 +131,17 @@ with tabs[5]:
     for name,color in [("MA20","#17C3B2"),("MA50","#F59E0B"),("MA200","#A78BFA")]: fig.add_trace(go.Scatter(x=tech["date"],y=tech[name],name=name,line=dict(width=1.4,color=color)),row=1,col=1)
     fig.add_trace(go.Bar(x=tech["date"],y=tech["volume"],name="Volume",marker_color="#2F80ED"),row=2,col=1); fig.add_trace(go.Scatter(x=tech["date"],y=tech["Volume_MA20"],name="Volume MA20",line=dict(color="#F8FAFC",width=1)),row=2,col=1)
     fig.update_layout(template="plotly_dark",height=650,title=f"{symbol}: price, trend and liquidity",xaxis_rangeslider_visible=False,legend_orientation="h",legend_y=1.02); st.plotly_chart(fig,use_container_width=True)
-    macro=data["Macro_Indicators"].copy(); macro["Current_Value"]=pd.to_numeric(macro["Current_Value"],errors="coerce"); macro["Previous_Value"]=pd.to_numeric(macro["Previous_Value"],errors="coerce"); macro["Change"]=macro["Current_Value"]-macro["Previous_Value"]
+    macro,macro_errors=cached_macro(data["Macro_Indicators"])
     st.markdown("### Macro pulse")
     macro_cards=st.columns(6)
     for col,(_,r) in zip(macro_cards,macro.head(6).iterrows()): col.metric(r["Indicator"],f"{r['Current_Value']:,.2f} {r['Unit']}",f"{r['Change']:+,.2f}")
     dataframe(macro[["As_of","Indicator","Current_Value","Previous_Value","Change","Unit","Direction","Market_Implication","Source_Status","Owner"]])
+    live_count=int(macro["Source_Status"].astype(str).str.contains("Vnstock",case=False,na=False).sum())
+    st.caption(f"Macro source coverage: {live_count}/{len(macro)} indicators from Vnstock live; remaining indicators use the labelled Master fallback.")
+    if macro_errors:
+        with st.expander("Macro API diagnostics"):
+            st.caption("No API key or sensitive authentication data is shown.")
+            for error in macro_errors: st.text(error)
 
 with tabs[6]:
     comp=competitor_score(data); name_col=comp.columns[0]; fig=px.bar(comp,x="Competitive_Score",y=name_col,orientation="h",color="Competitive_Score",color_continuous_scale="Blues",title="Competitive position score"); fig.update_layout(template="plotly_dark",height=430); st.plotly_chart(fig,use_container_width=True); dataframe(comp)
@@ -155,7 +164,16 @@ with tabs[10]:
 with tabs[11]:
     q=quality_table(data); c=st.columns(4); c[0].metric("Quality score",f"{quality['score']:.0f}/100"); c[1].metric("Verified fields",f"{quality['verified_pct']:.0%}"); c[2].metric("Assumption domains",f"{quality['assumption_pct']:.0%}"); c[3].metric("Overdue domains",quality['overdue'])
     fig=px.bar(q,x="Quality_Score",y="Data_Domain",orientation="h",color="Quality_Score",range_x=[0,100],color_continuous_scale="RdYlGn",title="Data lineage and quality by domain"); fig.update_layout(template="plotly_dark",height=430); st.plotly_chart(fig,use_container_width=True); dataframe(q)
-    st.markdown("### News and operating events"); events=data["News_Events"].sort_values("Date",ascending=False); dataframe(events)
+    st.markdown("### News and operating events")
+    events=data.get("News_Events",pd.DataFrame()).copy()
+    if events.empty:
+        st.info("No news or operating events are available in the current Master.")
+    else:
+        date_col=next((c for c in ["Date","Event_Date","As_of","Published_Date","time"] if c in events.columns),None)
+        if date_col:
+            events[date_col]=pd.to_datetime(events[date_col],errors="coerce")
+            events=events.sort_values(date_col,ascending=False,na_position="last")
+        dataframe(events)
 
 with tabs[12]:
     for _,r in advice.iterrows(): st.markdown(f"<div class='advisory-card'><b>{r['Priority']} · {r['Domain']}</b><br><b>Observation:</b> {r['Observation']}<br><b>Diagnosis:</b> {r['Diagnosis']}<br><b>Implication:</b> {r['Implication']}<br><b>Recommendation:</b> {r['Recommended_Action']}<br><span class='muted'>Owner: {r['Owner']}</span></div>",unsafe_allow_html=True)
@@ -164,11 +182,11 @@ with tabs[12]:
 with tabs[13]:
     st.subheader("Board / Executive Pack")
     pdf=board_pack_pdf(ex,mm,regime,quality,advice,offtrack,actions); pptx=board_pack_pptx(ex,regime,quality,advice,offtrack,actions); pack={"as_of":str(ex["as_of"]),"executive_metrics":ex,"market_metrics":mm,"market_regime":regime,"off_track_kpis":offtrack,"open_actions":actions,"data_quality":quality,"top_recommendations":advice.head(5).to_dict(orient="records")}
-    c=st.columns(4); c[0].download_button("Board Pack PDF",pdf,"DCVFM_Board_Pack_V4_2.pdf","application/pdf",use_container_width=True); c[1].download_button("Board Pack PPTX",pptx,"DCVFM_Board_Pack_V4_2.pptx","application/vnd.openxmlformats-officedocument.presentationml.presentation",use_container_width=True); c[2].download_button("Board Pack JSON",json.dumps(pack,default=str,ensure_ascii=False,indent=2),"DCVFM_Board_Pack_V4_2.json","application/json",use_container_width=True); c[3].download_button("Recommendations CSV",advice.to_csv(index=False).encode("utf-8-sig"),"DCVFM_Recommendations_V4_2.csv","text/csv",use_container_width=True)
+    c=st.columns(4); c[0].download_button("Board Pack PDF",pdf,"DCVFM_Board_Pack_V4_3.pdf","application/pdf",use_container_width=True); c[1].download_button("Board Pack PPTX",pptx,"DCVFM_Board_Pack_V4_3.pptx","application/vnd.openxmlformats-officedocument.presentationml.presentation",use_container_width=True); c[2].download_button("Board Pack JSON",json.dumps(pack,default=str,ensure_ascii=False,indent=2),"DCVFM_Board_Pack_V4_3.json","application/json",use_container_width=True); c[3].download_button("Recommendations CSV",advice.to_csv(index=False).encode("utf-8-sig"),"DCVFM_Recommendations_V4_3.csv","text/csv",use_container_width=True)
     st.markdown("### Intelligence Copilot")
     question=st.text_input("Ask about AUM, funds, market, macro, financials, operations or data quality",placeholder="Ví dụ: KPI vận hành nào đang cần xử lý?")
     if question: st.markdown(f"<div class='advisory-card'>{copilot_answer(question,data,regime)}</div>",unsafe_allow_html=True)
-    st.caption("Copilot V4.2 is deterministic and grounded in the loaded Master; it does not make external factual claims.")
+    st.caption("Copilot V4.3 is deterministic and grounded in the loaded Master; it does not make external factual claims.")
 
 with tabs[14]:
     prof=product_profitability(data); dist=distribution_intelligence(data)
@@ -210,3 +228,24 @@ with tabs[17]:
     b.plotly_chart(px.bar(decisions,x="Progress_Pct",y="Decision_ID",orientation="h",color="Priority",hover_data=["Recommendation","Decision_Status","Action_Owner"],title="Decision execution progress").update_layout(template="plotly_dark",height=430,xaxis_tickformat=".0%"),use_container_width=True)
     dataframe(ops)
     dataframe(decisions.style.format({"Progress_Pct":"{:.0%}"}))
+
+with tabs[18]:
+    impact=scenario_financial_impact(data)
+    selected=st.selectbox("Scenario for management review",impact["Scenario"].tolist(),index=1)
+    row=impact.loc[impact["Scenario"]==selected].iloc[0]; base=impact.iloc[0]
+    k=st.columns(8)
+    cards=[("Ending AUM",f"{row['Ending_AUM_VND_bn']/1000:,.1f} tn",f"{row['Ending_AUM_VND_bn']-base['Ending_AUM_VND_bn']:+,.0f} bn vs Base"),("Revenue",f"{row['Revenue_VND_bn']:,.0f} bn",f"{row['Revenue_vs_Base_VND_bn']:+,.0f} bn"),("PBT",f"{row['PBT_VND_bn']:,.0f} bn",f"{row['PBT_vs_Base_VND_bn']:+,.0f} bn"),("NPAT",f"{row['NPAT_VND_bn']:,.0f} bn",f"{row['NPAT_vs_Base_VND_bn']:+,.0f} bn"),("Ending cash",f"{row['Ending_Cash_VND_bn']:,.0f} bn",f"{row['Cash_Headroom_VND_bn']:+,.0f} bn headroom"),("Total assets",f"{row['Total_Assets_VND_bn']:,.0f} bn",None),("ROA",f"{row['ROA_Pct']:.1%}",None),("ROE",f"{row['ROE_Pct']:.1%}",None)]
+    for col,(label,value,delta) in zip(k,cards): col.metric(label,value,delta)
+    a,b=st.columns(2)
+    compare=impact.melt(id_vars="Scenario",value_vars=["Revenue_VND_bn","PBT_VND_bn","NPAT_VND_bn"],var_name="Metric",value_name="VND_bn")
+    a.plotly_chart(px.bar(compare,x="Scenario",y="VND_bn",color="Metric",barmode="group",title="Income statement outcomes by scenario").update_layout(template="plotly_dark",height=450),use_container_width=True)
+    bridge=pd.DataFrame({"Driver":["Base PBT","Revenue impact","Personnel impact","Other opex impact","Scenario PBT"],"Value":[base['PBT_VND_bn'],row['Revenue_VND_bn']-base['Revenue_VND_bn'],-(row['Personnel_VND_bn']-base['Personnel_VND_bn']),-(row['Other_Opex_VND_bn']-base['Other_Opex_VND_bn']),row['PBT_VND_bn']],"Measure":["absolute","relative","relative","relative","total"]})
+    fig=go.Figure(go.Waterfall(x=bridge["Driver"],y=bridge["Value"],measure=bridge["Measure"],connector={"line":{"color":"#8FA3BF"}})); fig.update_layout(template="plotly_dark",height=450,title=f"PBT bridge — {selected}",yaxis_title="VND bn"); b.plotly_chart(fig,use_container_width=True)
+    st.markdown("### Cash flow and balance-sheet transmission")
+    cf=pd.DataFrame({"Item":["CFO","Capex","Dividend","Ending cash","Total assets","Ending equity"],"VND_bn":[row['CFO_VND_bn'],-row['Capex_VND_bn'],-row['Dividend_VND_bn'],row['Ending_Cash_VND_bn'],row['Total_Assets_VND_bn'],row['Ending_Equity_VND_bn']]})
+    c1,c2=st.columns([1,1.6]); c1.plotly_chart(px.bar(cf,x="Item",y="VND_bn",color="VND_bn",color_continuous_scale="RdYlGn",title="Cash and balance-sheet effects").update_layout(template="plotly_dark",height=400),use_container_width=True)
+    view_cols=["Scenario","Ending_AUM_VND_bn","Revenue_VND_bn","PBT_VND_bn","NPAT_VND_bn","PBT_Margin_Pct","CFO_VND_bn","Ending_Cash_VND_bn","Total_Assets_VND_bn","ROA_Pct","ROE_Pct","Balance_Check_VND_bn"]
+    c2.dataframe(impact[view_cols].style.format({"PBT_Margin_Pct":"{:.1%}","ROA_Pct":"{:.1%}","ROE_Pct":"{:.1%}","Balance_Check_VND_bn":"{:.2f}"}),use_container_width=True,hide_index=True)
+    if row["Ending_Cash_VND_bn"]<300: st.error("Liquidity alert: ending cash is below the illustrative minimum threshold in the Master Excel.")
+    if abs(row["Balance_Check_VND_bn"])>0.1: st.error("Model control failed: projected balance sheet does not balance.")
+    st.caption("Illustrative forecast. Replace blue assumptions in Scenario_Assumptions and scenario drivers in Scenarios with approved budget/actual data before formal use.")
