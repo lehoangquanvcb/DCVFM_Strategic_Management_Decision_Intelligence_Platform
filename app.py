@@ -69,7 +69,7 @@ market,market_source,market_error=cached_market(symbol,start.isoformat(),date.to
 mm=market_metrics(market); regime=market_regime(mm); ex=executive_metrics(data); mna=mna_signal(data); quality=quality_summary(data); actions=action_summary(data); advice=generate_advisories(data,regime)
 header(APP_VERSION,AUTHOR)
 if market_error:
-    if market_source == "Last successful Vnstock cache":
+    if market_source == "Vnstock Cache":
         st.info("Live Vnstock request failed; the platform is using the last successful authenticated market cache.")
     else:
         st.info("Live Vnstock and local cache are unavailable; the platform is using a clearly labelled illustrative fallback. Company data still comes from Master Excel.")

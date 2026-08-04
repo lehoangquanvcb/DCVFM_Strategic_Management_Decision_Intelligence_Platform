@@ -34,11 +34,11 @@ def _vnstock(symbol: str, start: str, end: str, source: str) -> tuple[pd.DataFra
     # Sponsor/Unified UI route.
     try:
         from vnstock import Market
-        return _standardize(Market().index(symbol).ohlcv(start=start,end=end,interval="1D")), "Vnstock Market / Unified UI"
+        return _standardize(Market().index(symbol).ohlcv(start=start,end=end,interval="1D")), "Vnstock Live / UI"
     except Exception as exc: errors.append(f"Market:{type(exc).__name__}")
     try:
         from vnstock_data import Market
-        return _standardize(Market().index(symbol).ohlcv(start=start,end=end,interval="1D")), "Vnstock Market / vnstock_data"
+        return _standardize(Market().index(symbol).ohlcv(start=start,end=end,interval="1D")), "Vnstock Live / Data"
     except Exception as exc: errors.append(f"vnstock_data:{type(exc).__name__}")
     # Current Quote API: KBS first, then the configured source and VCI.
     for provider in list(dict.fromkeys(["KBS", source.upper(), "VCI"])):
@@ -95,7 +95,7 @@ def get_market_data(symbol="VNINDEX",start="2025-01-01",end=None,source="KBS",fa
         return frame,label,None
     except Exception as exc:
         cached=_load_cache(symbol,start,end)
-        if cached is not None: return cached,"Last successful Vnstock cache",str(exc)
+        if cached is not None: return cached,"Vnstock Cache",str(exc)
         if not fallback: raise
         return _fallback(symbol,start,end,float(base)),"Offline illustrative fallback",str(exc)
 
