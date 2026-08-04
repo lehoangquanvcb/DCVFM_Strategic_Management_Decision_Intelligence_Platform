@@ -1,0 +1,210 @@
+from __future__ import annotations
+
+import json, math
+from datetime import date
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import streamlit as st
+
+from advisory import generate_advisories
+from analytics import advanced_fund_analytics, attribution, aum_bridge, competitor_score, executive_metrics, flow_table, integrated_financial_model, stress_test, product_profitability, distribution_intelligence, investor_ews, compliance_cockpit, product_strategy, business_plan_kpi, valuation_scenarios, decision_summary
+from config import APP_NAME, APP_VERSION, AUTHOR, DEFAULT_MASTER, COLORS
+from copilot import answer as copilot_answer
+from data_loader import company_profile, config_map, load_master, validate_master
+from data_quality import action_summary, quality_summary, quality_table
+from export_pack import board_pack_pdf, board_pack_pptx
+from forensic import buyer_scenarios, entity_network, evidence_registry, mna_signal, regulatory_scenarios
+from market_data import get_market_data, market_metrics, market_regime
+from ui import dataframe, header, inject_css
+from vnstock_auth import configure_vnstock_auth, resolve_api_key
+
+st.set_page_config(page_title=APP_NAME, page_icon="📊", layout="wide", initial_sidebar_state="expanded")
+inject_css()
+
+@st.cache_data(show_spinner=False)
+def cached_master(source): return load_master(source)
+@st.cache_data(ttl=3600, show_spinner=False)
+def cached_market(symbol,start,end,source,fallback,base): return get_market_data(symbol,start,end,source,fallback,base)
+@st.cache_resource(show_spinner=False)
+def cached_auth(api_key): return configure_vnstock_auth(api_key)
+
+with st.sidebar:
+    st.markdown("### Control Panel")
+    uploaded=st.file_uploader("Upload Master Excel",type=["xlsx"])
+    st.caption("No upload: packaged V4 Master is used.")
+    if st.button("Refresh cached data",use_container_width=True): st.cache_data.clear(); st.rerun()
+
+source=uploaded.getvalue() if uploaded else str(DEFAULT_MASTER)
+try: data=cached_master(source)
+except Exception as exc: st.error(f"Unable to load Master Excel: {exc}"); st.stop()
+issues=validate_master(data)
+if issues: st.warning("Data quality issues: "+" | ".join(issues))
+profile=company_profile(data); cfg=config_map(data); funds=data["Fund_Master"]["Fund_Code"].dropna().astype(str).tolist()
+api_key=resolve_api_key(st.secrets)
+auth_state=cached_auth(api_key)
+with st.sidebar:
+    selected_fund=st.selectbox("Fund / strategy",funds,index=0)
+    symbol=st.text_input("Market index",str(cfg.get("Index_Symbol","VNINDEX")))
+    start=st.date_input("Market start",pd.to_datetime(cfg.get("Start_Date","2025-01-01")).date())
+    fallback=st.toggle("Safe fallback",value=str(cfg.get("Fallback_Enabled","Yes")).lower()=="yes")
+    st.divider()
+    if auth_state["authenticated"]:
+        limit_text=f" • {auth_state['limit']} req/min" if auth_state.get("limit") else ""
+        st.success(f"Vnstock authenticated: {auth_state['tier']}{limit_text}")
+    elif auth_state["available"]:
+        st.warning("Vnstock installed but no authenticated identity detected")
+    else:
+        st.error("Vnstock authentication module unavailable")
+    st.caption("API key is never displayed or stored in the Master Excel.")
+    st.caption(f"Master {profile.get('Model_Version',APP_VERSION)} • {profile.get('Platform_As_of','')}")
+
+market,market_source,market_error=cached_market(symbol,start.isoformat(),date.today().isoformat(),str(cfg.get("Preferred_Source","VCI")),fallback,float(cfg.get("Offline_Base_Index",1265)))
+mm=market_metrics(market); regime=market_regime(mm); ex=executive_metrics(data); mna=mna_signal(data); quality=quality_summary(data); actions=action_summary(data); advice=generate_advisories(data,regime)
+header(APP_VERSION,AUTHOR)
+if market_error:
+    if market_source == "Last successful Vnstock cache":
+        st.info("Live Vnstock request failed; the platform is using the last successful authenticated market cache.")
+    else:
+        st.info("Live Vnstock and local cache are unavailable; the platform is using a clearly labelled illustrative fallback. Company data still comes from Master Excel.")
+
+tabs=st.tabs(["01 Executive","02 Fund Performance","03 AUM & Flows","04 Portfolio","05 ETF","06 Market & Macro","07 Competitors","08 Financials","09 Risk & EWS","10 Stress Test","11 Ownership","12 M&A Forensics","13 Buyer & Deal","14 Events & Data Quality","15 Advisory & Actions","16 Board Pack & Copilot","17 Commercial Intelligence","18 Investor & Compliance","19 Product & Business Plan","20 Valuation & Decisions"])
+
+with tabs[0]:
+    cols=st.columns(8)
+    vals=[("AUM",f"{ex['aum']/1000:,.1f} tn",f"{ex['aum_growth']:.1%} MoM"),("3M net flow",f"{ex['flow_3m']:,.0f} bn",None),("VN-Index",f"{mm['level']:,.1f}",f"{mm['return_3m']:.1%} / 3M"),("Regime",regime,None),("Risk",f"{ex['risk_score']:.0f}/100",None),("M&A signal",f"{mna['score']:.0f}/100",mna['level']),("Data quality",f"{quality['score']:.0f}/100",f"{quality['overdue']} overdue"),("Actions",str(actions['open']),f"{actions['avg_progress']:.0%} progress")]
+    for c,(label,value,delta) in zip(cols,vals): c.metric(label,value,delta)
+    left,right=st.columns([1.6,1])
+    with left:
+        aum=data["AUM"].groupby("Date",as_index=False)["AUM_VND_bn"].sum(); fig=px.area(aum,x="Date",y="AUM_VND_bn",title="Total AUM trajectory",color_discrete_sequence=[COLORS["teal"]]); fig.update_layout(template="plotly_dark",height=370,yaxis_title="VND bn"); st.plotly_chart(fig,use_container_width=True)
+    with right:
+        st.markdown("### Top management actions")
+        for _,r in advice.head(4).iterrows(): st.markdown(f"<div class='advisory-card'><b>{r['Priority']} · {r['Domain']}</b><br>{r['Recommended_Action']}<br><span class='muted'>Owner: {r['Owner']}</span></div>",unsafe_allow_html=True)
+
+with tabs[1]:
+    perf=advanced_fund_analytics(data)
+    formatters={c:"{:.1%}" for c in ["Return_1M","Return_3M","Return_12M","Alpha_3M","Annualized_Return","Volatility","Tracking_Error","Max_Drawdown","Positive_Month_Ratio","Peer_Percentile"]}
+    formatters.update({"NAV":"{:,.2f}","Sharpe":"{:.2f}","Sortino":"{:.2f}","Information_Ratio":"{:.2f}"})
+    dataframe(perf.style.format(formatters))
+    nav=data["NAV_History"].copy(); nav["Indexed_NAV"]=nav.groupby("Fund_Code")["NAV"].transform(lambda s:s/s.iloc[0]*100)
+    fig=px.line(nav,x="Date",y="Indexed_NAV",color="Fund_Code",title="Indexed NAV and performance persistence"); fig.update_layout(template="plotly_dark",height=440); st.plotly_chart(fig,use_container_width=True)
+
+with tabs[2]:
+    bridge=aum_bridge(data); a,b=st.columns(2)
+    with a:
+        fig=px.area(data["AUM"],x="Date",y="AUM_VND_bn",color="Fund_Code",title="AUM composition"); fig.update_layout(template="plotly_dark",height=420); st.plotly_chart(fig,use_container_width=True)
+    with b:
+        recent=bridge.tail(12).melt(id_vars="Date",value_vars=["Net_Flow_VND_bn","Market_and_Other_Effect"],var_name="Driver",value_name="VND_bn"); fig=px.bar(recent,x="Date",y="VND_bn",color="Driver",barmode="relative",title="AUM bridge: flow vs market/other effect"); fig.update_layout(template="plotly_dark",height=420); st.plotly_chart(fig,use_container_width=True)
+    dataframe(flow_table(data))
+
+with tabs[3]:
+    port=data["Portfolio"]; fund_port=port[port["Fund_Code"]==selected_fund].copy(); a,b=st.columns(2)
+    with a:
+        fig=px.treemap(fund_port,path=["Sector","Ticker"],values="Weight_Pct",title=f"{selected_fund} allocation"); fig.update_layout(template="plotly_dark",height=480); st.plotly_chart(fig,use_container_width=True)
+    with b:
+        att=attribution(data,selected_fund)
+        if not att.empty:
+            fig=px.bar(att,x="Ticker",y="Contribution_Pct",color="Contribution_Pct",color_continuous_scale="RdYlGn",title="Active contribution"); fig.update_layout(template="plotly_dark",height=480,yaxis_tickformat=".2%"); st.plotly_chart(fig,use_container_width=True)
+        else: st.info("No attribution rows for selected strategy.")
+    dataframe(fund_port)
+
+with tabs[4]:
+    etfs=["E1VFVN30","FUEVFVND"]; p=advanced_fund_analytics(data).query("Fund_Code in @etfs"); dataframe(p.style.format(formatters))
+    ef=data["Fund_Flows"].query("Fund_Code in @etfs"); fig=px.bar(ef,x="Date",y="Net_Flow_VND_bn",color="Fund_Code",barmode="group",title="ETF creation/redemption proxy"); fig.update_layout(template="plotly_dark",height=440); st.plotly_chart(fig,use_container_width=True)
+
+with tabs[5]:
+    c1,c2,c3,c4=st.columns(4); c1.metric("Source",market_source); c2.metric("1M return",f"{mm['return_1m']:.1%}"); c3.metric("Volatility",f"{mm['volatility']:.1%}"); c4.metric("Drawdown",f"{mm['drawdown']:.1%}")
+    fig=go.Figure(data=[go.Candlestick(x=market["date"],open=market["open"],high=market["high"],low=market["low"],close=market["close"])]); fig.update_layout(template="plotly_dark",height=500,title=f"{symbol} history",xaxis_rangeslider_visible=False); st.plotly_chart(fig,use_container_width=True)
+
+with tabs[6]:
+    comp=competitor_score(data); name_col=comp.columns[0]; fig=px.bar(comp,x="Competitive_Score",y=name_col,orientation="h",color="Competitive_Score",color_continuous_scale="Blues",title="Competitive position score"); fig.update_layout(template="plotly_dark",height=430); st.plotly_chart(fig,use_container_width=True); dataframe(comp)
+
+with tabs[7]:
+    fin=integrated_financial_model(data); c1,c2=st.columns(2)
+    c1.plotly_chart(px.bar(fin,x="Year",y=["Revenue_VND_bn","NPAT_VND_bn"],barmode="group",title="AUM-driven revenue and NPAT").update_layout(template="plotly_dark",height=410),use_container_width=True)
+    c2.plotly_chart(px.line(fin,x="Year",y=["Fee_Yield_Pct","PBT_Margin_Pct"],markers=True,title="Fee yield and operating leverage").update_layout(template="plotly_dark",height=410,yaxis_tickformat=".1%"),use_container_width=True)
+    dataframe(fin.style.format({"Market_Return_Pct":"{:.1%}","Fee_Yield_Pct":"{:.2%}","Effective_Tax_Pct":"{:.1%}","AUM_Growth_Pct":"{:.1%}","PBT_Margin_Pct":"{:.1%}"}))
+
+with tabs[8]:
+    risk=data["Risk_Indicators"].copy(); risk["Current_Score"]=pd.to_numeric(risk["Current_Score"],errors="coerce"); fig=px.bar(risk.sort_values("Current_Score"),x="Current_Score",y="Risk_Type",orientation="h",color="Current_Score",color_continuous_scale="RdYlGn_r",range_color=[0,100],title="Enterprise early-warning scores"); fig.update_layout(template="plotly_dark",height=460); st.plotly_chart(fig,use_container_width=True); dataframe(risk)
+
+with tabs[9]:
+    c1,c2,c3=st.columns(3); shock=c1.slider("VN-Index shock",-0.40,0.10,-0.20,0.05); redemption=c2.slider("Redemption",0.0,0.40,0.15,0.05); fee=c3.slider("Fee compression",0.0,0.30,0.10,0.05); s=stress_test(data,shock,redemption,fee); d=st.columns(4); d[0].metric("Stressed AUM",f"{s['AUM']/1000:,.1f} tn"); d[1].metric("Revenue",f"{s['Revenue']:,.0f} bn"); d[2].metric("PBT",f"{s['PBT']:,.0f} bn"); d[3].metric("PBT impact",f"{s['PBT_Impact']:.1%}"); st.warning("Illustrative management stress test; validate financial assumptions before formal use.")
+
+with tabs[10]:
+    own=data["Shareholders"].copy(); own["Ownership_Pct"]=pd.to_numeric(own["Ownership_Pct"],errors="coerce"); fig=px.pie(own,names="Shareholder",values="Ownership_Pct",hole=.55,title="Ownership structure"); fig.update_layout(template="plotly_dark",height=430); st.plotly_chart(fig,use_container_width=True); dataframe(data["Board_Events"])
+
+with tabs[11]:
+    c=st.columns(4); c[0].metric("Forensic signal",f"{mna['score']:.0f}/100"); c[1].metric("Level",mna['level']); c[2].metric("Evidence items",mna['evidence_count']); c[3].metric("Weighted points",f"{mna['raw_points']:.0f}"); st.caption("Signal score is a monitoring indicator—not transaction probability or allegation.")
+    ev=evidence_registry(data); fig=px.bar(ev.sort_values("Weighted_Points"),x="Weighted_Points",y="Event",orientation="h",color="Weighted_Points",color_continuous_scale="RdYlGn",title="Evidence contribution"); fig.update_layout(template="plotly_dark",height=430); st.plotly_chart(fig,use_container_width=True)
+    st.markdown("### Entity network")
+    net=entity_network(data); nodes=sorted(set(net["Source_Entity"]).union(net["Target_Entity"])); pos={n:(math.cos(2*math.pi*i/len(nodes)),math.sin(2*math.pi*i/len(nodes))) for i,n in enumerate(nodes)}; fig=go.Figure()
+    for _,r in net.iterrows(): fig.add_trace(go.Scatter(x=[pos[r.Source_Entity][0],pos[r.Target_Entity][0]],y=[pos[r.Source_Entity][1],pos[r.Target_Entity][1]],mode="lines",line=dict(color="#45617f",width=2),hovertext=r.Relationship,hoverinfo="text",showlegend=False))
+    fig.add_trace(go.Scatter(x=[pos[n][0] for n in nodes],y=[pos[n][1] for n in nodes],mode="markers+text",text=nodes,textposition="top center",marker=dict(size=22,color="#2F80ED",line=dict(width=2,color="#8ec5ff")),showlegend=False)); fig.update_layout(template="plotly_dark",height=520,xaxis=dict(visible=False),yaxis=dict(visible=False),title="Relationship map – evidence level remains visible in Master"); st.plotly_chart(fig,use_container_width=True); dataframe(net)
+
+with tabs[12]:
+    buyers=buyer_scenarios(data); a,b=st.columns([1.2,1])
+    with a:
+        fig=px.bar(buyers,x="Weighted_Score",y="Scenario",orientation="h",color="Weighted_Score",range_x=[0,100],color_continuous_scale="Blues",title="Strategic buyer scenario ranking"); fig.update_layout(template="plotly_dark",height=420); st.plotly_chart(fig,use_container_width=True)
+    with b:
+        stake=st.slider("Illustrative acquired stake",0,100,51,5); buyer_type=st.radio("Buyer type",["Foreign","Domestic"],horizontal=True); control="Yes" if stake>50 else "No / depends on rights"; tender="Review required" if stake>=25 else "Monitor"; foreign="Required" if buyer_type=="Foreign" else "Not primary"; st.metric("Control change screen",control); st.metric("Tender-offer screen",tender); st.metric("Foreign ownership screen",foreign); st.caption("Preliminary screen only; not legal advice.")
+    dataframe(regulatory_scenarios(data).style.format({"Stake_Acquired_Pct":"{:.0%}"}))
+
+with tabs[13]:
+    q=quality_table(data); c=st.columns(4); c[0].metric("Quality score",f"{quality['score']:.0f}/100"); c[1].metric("Verified fields",f"{quality['verified_pct']:.0%}"); c[2].metric("Assumption domains",f"{quality['assumption_pct']:.0%}"); c[3].metric("Overdue domains",quality['overdue'])
+    fig=px.bar(q,x="Quality_Score",y="Data_Domain",orientation="h",color="Quality_Score",range_x=[0,100],color_continuous_scale="RdYlGn",title="Data lineage and quality by domain"); fig.update_layout(template="plotly_dark",height=430); st.plotly_chart(fig,use_container_width=True); dataframe(q)
+    st.markdown("### News and events"); events=data.get("News_Events",data["M&A_Events"]).sort_values("Date",ascending=False); dataframe(events)
+
+with tabs[14]:
+    for _,r in advice.iterrows(): st.markdown(f"<div class='advisory-card'><b>{r['Priority']} · {r['Domain']}</b><br><b>Observation:</b> {r['Observation']}<br><b>Diagnosis:</b> {r['Diagnosis']}<br><b>Implication:</b> {r['Implication']}<br><b>Recommendation:</b> {r['Recommended_Action']}<br><span class='muted'>Owner: {r['Owner']}</span></div>",unsafe_allow_html=True)
+    st.markdown("### Management Action Tracker"); tracker=data.get("Action_Tracker",pd.DataFrame()).copy(); dataframe(tracker.style.format({"Progress_Pct":"{:.0%}"}))
+
+with tabs[15]:
+    st.subheader("Board / Executive Pack")
+    pdf=board_pack_pdf(ex,mm,regime,mna,quality,advice); pptx=board_pack_pptx(ex,regime,mna,quality,advice); pack={"as_of":str(ex["as_of"]),"executive_metrics":ex,"market_metrics":mm,"market_regime":regime,"mna_signal":mna,"data_quality":quality,"top_recommendations":advice.head(5).to_dict(orient="records")}
+    c=st.columns(4); c[0].download_button("Board Pack PDF",pdf,"DCVFM_Board_Pack_V4.pdf","application/pdf",use_container_width=True); c[1].download_button("Board Pack PPTX",pptx,"DCVFM_Board_Pack_V4.pptx","application/vnd.openxmlformats-officedocument.presentationml.presentation",use_container_width=True); c[2].download_button("Board Pack JSON",json.dumps(pack,default=str,ensure_ascii=False,indent=2),"DCVFM_Board_Pack_V4.json","application/json",use_container_width=True); c[3].download_button("Recommendations CSV",advice.to_csv(index=False).encode("utf-8-sig"),"DCVFM_Recommendations_V4.csv","text/csv",use_container_width=True)
+    st.markdown("### Intelligence Copilot")
+    question=st.text_input("Ask about AUM, funds, alpha, M&A, buyers, financials or data quality",placeholder="Ví dụ: Vì sao AUM tăng nhưng lợi nhuận tăng chậm?")
+    if question: st.markdown(f"<div class='advisory-card'>{copilot_answer(question,data,regime)}</div>",unsafe_allow_html=True)
+    st.caption("Copilot V4 is deterministic and grounded in the loaded Master; it does not make external factual claims.")
+
+with tabs[16]:
+    prof=product_profitability(data); dist=distribution_intelligence(data)
+    c1,c2,c3,c4=st.columns(4)
+    c1.metric("Product revenue",f"{prof['Revenue_VND_bn'].sum():,.0f} bn")
+    c2.metric("Product contribution",f"{prof['Contribution_VND_bn'].sum():,.0f} bn")
+    c3.metric("Net channel sales",f"{dist['Net_Sales_VND_bn'].sum():,.0f} bn")
+    c4.metric("Largest channel share",f"{dist['AUM_Share_Pct'].max():.1%}")
+    a,b=st.columns(2)
+    a.plotly_chart(px.bar(prof,x="Fund_Code",y="Contribution_VND_bn",color="Contribution_Margin_Pct",color_continuous_scale="Blues",title="Product contribution and margin").update_layout(template="plotly_dark",height=420),use_container_width=True)
+    b.plotly_chart(px.scatter(dist,x="Net_Sales_VND_bn",y="Ending_AUM_VND_bn",size="Active_Investors",color="Retention_Pct",hover_name="Channel",title="Distribution economics").update_layout(template="plotly_dark",height=420),use_container_width=True)
+    dataframe(prof.style.format({"Effective_Fee_Pct":"{:.2%}","Contribution_Margin_Pct":"{:.1%}"}))
+    dataframe(dist.style.format({"Retention_Pct":"{:.1%}","AUM_Share_Pct":"{:.1%}","Cost_per_Net_Sales":"{:.2f}"}))
+
+with tabs[17]:
+    inv=investor_ews(data); compc=compliance_cockpit(data)
+    a,b=st.columns(2)
+    a.plotly_chart(px.bar(inv,x="Cohort",y="Risk_Score",color="Risk_Level",title="Investor redemption early-warning score").update_layout(template="plotly_dark",height=420),use_container_width=True)
+    b.plotly_chart(px.bar(compc,x="Control_ID",y="Headroom",color="Status",hover_data=["Control_Area","Metric","Owner"],title="Compliance control headroom").update_layout(template="plotly_dark",height=420),use_container_width=True)
+    st.caption("Redemption Risk Score is a monitoring signal, not a forecast probability. Compliance rows require Legal/Compliance validation.")
+    dataframe(inv.style.format({"Underperformance_3M_Pct":"{:.1%}","Concentration_Pct":"{:.1%}"}))
+    dataframe(compc)
+
+with tabs[18]:
+    products=product_strategy(data); kpis=business_plan_kpi(data)
+    a,b=st.columns(2)
+    a.plotly_chart(px.bar(products,x="Weighted_Score",y="Product_Idea",orientation="h",color="Decision",range_x=[0,10],title="Product strategy screening").update_layout(template="plotly_dark",height=430),use_container_width=True)
+    b.plotly_chart(px.bar(kpis,x="KPI",y="Forecast_vs_Plan_Pct",color="Status",title="FY forecast versus plan").update_layout(template="plotly_dark",height=430,yaxis_tickformat=".1%"),use_container_width=True)
+    dataframe(products)
+    dataframe(kpis.style.format({"Variance_Pct":"{:.1%}","Forecast_vs_Plan_Pct":"{:.1%}"}))
+
+with tabs[19]:
+    vals=valuation_scenarios(data); decisions=data["Decision_Tracker"].copy(); ds=decision_summary(data)
+    c1,c2,c3=st.columns(3); c1.metric("Open decisions",ds["open"]); c2.metric("High priority",ds["high"]); c3.metric("Average progress",f"{ds['avg_progress']:.0%}")
+    a,b=st.columns(2)
+    a.plotly_chart(px.bar(vals,x="Purchase_Price_VND_bn",y="Scenario",orientation="h",color="Evidence_Strength",title="Illustrative deal value by scenario").update_layout(template="plotly_dark",height=430),use_container_width=True)
+    decisions["Progress_Pct"]=pd.to_numeric(decisions["Progress_Pct"],errors="coerce")
+    b.plotly_chart(px.bar(decisions,x="Progress_Pct",y="Decision_ID",orientation="h",color="Priority",hover_data=["Recommendation","Decision_Status","Action_Owner"],title="Decision execution progress").update_layout(template="plotly_dark",height=430,xaxis_tickformat=".0%"),use_container_width=True)
+    st.caption("Valuation scenarios are analytical illustrations—not an offer, fairness opinion or transaction confirmation.")
+    dataframe(vals.style.format({"Control_Premium_Pct":"{:.1%}","Stake_Acquired_Pct":"{:.1%}","Implied_Payback_Years":"{:.1f}"}))
+    dataframe(decisions.style.format({"Progress_Pct":"{:.0%}"}))
