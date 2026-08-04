@@ -51,12 +51,18 @@ with st.sidebar:
     st.divider()
     if auth_state["authenticated"]:
         limit_text=f" • {auth_state['limit']} req/min" if auth_state.get("limit") else ""
-        st.success(f"Vnstock authenticated: {auth_state['tier']}{limit_text}")
+        st.success(f"Vnstock API authenticated{limit_text}")
+        if auth_state.get("membership"):
+            st.caption(f"Membership reported by Vnstock: {auth_state['membership']}")
+        elif auth_state.get("reported_plan"):
+            st.caption(f"API plan reported by Vnstock: {auth_state['reported_plan']} (website sponsor badge may be separate)")
+        else:
+            st.caption("Vnstock did not return membership metadata to this runtime.")
     elif auth_state["available"]:
         st.warning("Vnstock installed but no authenticated identity detected")
     else:
         st.error("Vnstock authentication module unavailable")
-    st.caption("API key is never displayed or stored in the Master Excel.")
+    st.caption("API key is never displayed, logged or stored in the Master Excel.")
     st.caption(f"Master {profile.get('Model_Version',APP_VERSION)} • {profile.get('Platform_As_of','')}")
 
 market,market_source,market_error=cached_market(symbol,start.isoformat(),date.today().isoformat(),str(cfg.get("Preferred_Source","VCI")),fallback,float(cfg.get("Offline_Base_Index",1265)))

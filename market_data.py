@@ -34,11 +34,11 @@ def _vnstock(symbol: str, start: str, end: str, source: str) -> tuple[pd.DataFra
     # Sponsor/Unified UI route.
     try:
         from vnstock import Market
-        return _standardize(Market().index(symbol).ohlcv(start=start,end=end,interval="1D")), "Vnstock Sponsor / Market Unified UI"
+        return _standardize(Market().index(symbol).ohlcv(start=start,end=end,interval="1D")), "Vnstock Market / Unified UI"
     except Exception as exc: errors.append(f"Market:{type(exc).__name__}")
     try:
         from vnstock_data import Market
-        return _standardize(Market().index(symbol).ohlcv(start=start,end=end,interval="1D")), "Vnstock Sponsor / vnstock_data"
+        return _standardize(Market().index(symbol).ohlcv(start=start,end=end,interval="1D")), "Vnstock Market / vnstock_data"
     except Exception as exc: errors.append(f"vnstock_data:{type(exc).__name__}")
     # Current Quote API: KBS first, then the configured source and VCI.
     for provider in list(dict.fromkeys(["KBS", source.upper(), "VCI"])):
@@ -110,4 +110,3 @@ def market_regime(metrics: dict) -> str:
     if metrics["return_3m"]>=0.08 and metrics["drawdown"]>-0.05:return "RISK-ON"
     if metrics["return_3m"]<0:return "RISK-OFF"
     return "NEUTRAL"
-

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 APP_NAME = "DCVFM Strategic Management & Decision Intelligence Platform"
-APP_VERSION = "V4.0"
+APP_VERSION = "V4.1"
 AUTHOR = "Le Hoang Quan"
 ROOT = Path(__file__).resolve().parent
 DEFAULT_MASTER = ROOT / "data" / "DCVFM_Strategic_Management_Decision_Intelligence_Master_V4.xlsx"
