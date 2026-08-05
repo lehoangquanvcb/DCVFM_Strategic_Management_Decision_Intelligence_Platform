@@ -257,3 +257,8 @@ def scenario_financial_impact(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     out["PBT_vs_Base_VND_bn"]=out["PBT_VND_bn"]-base["PBT_VND_bn"]
     out["NPAT_vs_Base_VND_bn"]=out["NPAT_VND_bn"]-base["NPAT_VND_bn"]
     return out
+
+
+# V4.4 linked three-statement engine. The separate module keeps the core
+# analytics API backward-compatible while exposing the enhanced scenario model.
+from financial_scenario import scenario_financial_impact, three_statement_comparison
