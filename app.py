@@ -17,7 +17,7 @@ from data_quality import action_summary, quality_summary, quality_table
 from export_pack import board_pack_pdf, board_pack_pptx
 from market_data import get_market_data, market_metrics, market_regime, market_technical_frame
 from macro_data import get_macro_indicators, SUPPORTED_LIVE_INDICATORS
-from ui import dataframe, header, inject_css
+from ui import dataframe, header, inject_css, tabs_note
 from vnstock_auth import configure_vnstock_auth, resolve_api_key
 
 st.set_page_config(page_title=APP_NAME, page_icon="📊", layout="wide", initial_sidebar_state="expanded")
@@ -78,6 +78,7 @@ if market_error:
     else:
         st.info("Live Vnstock and local cache are unavailable; the platform is using a clearly labelled illustrative fallback. Company data still comes from Master Excel.")
 
+tabs_note()
 tabs=st.tabs(["01 Executive","02 Fund Performance","03 AUM & Flows","04 Portfolio","05 ETF","06 Market, Liquidity & Macro","07 Competitors","08 Financials","09 Risk & EWS","10 Stress Test","11 Ownership & Governance","12 Events & Data Quality","13 Advisory & Actions","14 Board Pack & Copilot","15 Commercial Intelligence","16 Investor & Compliance","17 Product & Business Plan","18 Management Decisions","19 Financial Impact"])
 
 with tabs[0]:
