@@ -6,7 +6,7 @@ from data_quality import quality_summary
 
 def answer(question: str, data, regime: str) -> str:
     q=(question or "").lower().strip(); ex=executive_metrics(data); quality=quality_summary(data)
-    if not q: return "Nhập câu hỏi về AUM, hiệu quả quỹ, thị trường, vĩ mô, tài chính, vận hành hoặc chất lượng dữ liệu."
+    if not q: return "Nhập câu hỏi về AUM, hiệu quả quỹ, thị trường, thanh khoản, tài chính, vận hành hoặc chất lượng dữ liệu."
     if "aum" in q or "dòng tiền" in q:
         return f"AUM hiện tại trong Master là {ex['aum']/1000:,.1f} nghìn tỷ đồng; tăng {ex['aum_growth']:.1%} so với tháng trước. Dòng tiền ròng 3 tháng là {ex['flow_3m']:,.0f} tỷ đồng. Cần đọc cùng Market regime = {regime} để tách tăng trưởng do thị trường và do huy động mới."
     if "lợi nhuận" in q or "doanh thu" in q or "fee" in q:
@@ -23,8 +23,6 @@ def answer(question: str, data, regime: str) -> str:
         c=compliance_cockpit(data); n=int((c['Status']=='Action').sum()); return f"Compliance Cockpit có {n} control cần hành động. Cần xác minh quy định, threshold và evidence với Compliance/Legal trước khi dùng cho báo cáo chính thức."
     if "kế hoạch" in q or "kpi" in q or "forecast" in q:
         k=business_plan_kpi(data); r=k.sort_values('Forecast_vs_Plan_Pct').iloc[0]; return f"KPI lệch kế hoạch lớn nhất là {r['KPI']}: forecast so với plan {r['Forecast_vs_Plan_Pct']:.1%}, trạng thái {r['Status']}."
-    if "vĩ mô" in q or "macro" in q or "lãi suất" in q or "tỷ giá" in q:
-        m=data["Macro_Indicators"]; return "Macro pulse: " + "; ".join(f"{r.Indicator}: {r.Current_Value} {r.Unit} ({r.Direction})" for _,r in m.head(6).iterrows()) + ". Các dòng Assumption cần thay bằng số công bố chính thức."
     if "vận hành" in q or "sla" in q or "operations" in q:
         o=data["Operating_KPI"]; attention=o[o["Status"].astype(str).str.lower().isin(["action","off track","watch"])]
         return "Operating KPIs cần theo dõi: " + "; ".join(f"{r.KPI}: {r.Status} — {r.Management_Action}" for _,r in attention.head(5).iterrows())

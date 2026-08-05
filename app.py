@@ -16,7 +16,6 @@ from data_loader import company_profile, config_map, load_master, validate_maste
 from data_quality import action_summary, quality_summary, quality_table
 from export_pack import board_pack_pdf, board_pack_pptx
 from market_data import get_market_data, market_metrics, market_regime, market_technical_frame
-from macro_data import get_macro_indicators, SUPPORTED_LIVE_INDICATORS
 from ui import dataframe, header, inject_css, tabs_note
 from vnstock_auth import configure_vnstock_auth, resolve_api_key
 
@@ -27,8 +26,6 @@ inject_css()
 def cached_master(source): return load_master(source)
 @st.cache_data(ttl=3600, show_spinner=False)
 def cached_market(symbol,start,end,source,fallback,base): return get_market_data(symbol,start,end,source,fallback,base)
-@st.cache_data(ttl=3600, show_spinner=False)
-def cached_macro(master,use_live): return get_macro_indicators(master,use_live)
 @st.cache_resource(show_spinner=False)
 def cached_auth(api_key): return configure_vnstock_auth(api_key)
 
@@ -51,7 +48,6 @@ with st.sidebar:
     symbol=st.text_input("Market index",str(cfg.get("Index_Symbol","VNINDEX")))
     start=st.date_input("Market start",pd.to_datetime(cfg.get("Start_Date","2025-01-01")).date())
     fallback=st.toggle("Safe fallback",value=str(cfg.get("Fallback_Enabled","Yes")).lower()=="yes")
-    use_live_macro=st.toggle("Try Vnstock macro data",value=False,help="Off: use controlled Master Excel inputs. On: try the Sponsor Macro package and retain Master values when unavailable.")
     st.divider()
     if auth_state["authenticated"]:
         limit_text=f" • {auth_state['limit']} req/min" if auth_state.get("limit") else ""
@@ -79,7 +75,7 @@ if market_error:
         st.info("Live Vnstock and local cache are unavailable; the platform is using a clearly labelled illustrative fallback. Company data still comes from Master Excel.")
 
 tabs_note()
-tabs=st.tabs(["01 Executive","02 Fund Performance","03 AUM & Flows","04 Portfolio","05 ETF","06 Market, Liquidity & Macro","07 Competitors","08 Financials","09 Risk & EWS","10 Stress Test","11 Ownership & Governance","12 Events & Data Quality","13 Advisory & Actions","14 Board Pack & Copilot","15 Commercial Intelligence","16 Investor & Compliance","17 Product & Business Plan","18 Management Decisions","19 Financial Impact"])
+tabs=st.tabs(["01 Executive","02 Fund Performance","03 AUM & Flows","04 Portfolio","05 ETF","06 Market & Liquidity","07 Competitors","08 Financials","09 Risk & EWS","10 Stress Test","11 Ownership & Governance","12 Events & Data Quality","13 Advisory & Actions","14 Board Pack & Copilot","15 Commercial Intelligence","16 Investor & Compliance","17 Product & Business Plan","18 Management Decisions","19 Financial Impact"])
 
 with tabs[0]:
     cols=st.columns(8)
@@ -127,43 +123,16 @@ with tabs[5]:
     k=st.columns(8); market_kpis=[("VN-Index",f"{mm['level']:,.1f}"),("1M return",f"{mm['return_1m']:.1%}"),("3M return",f"{mm['return_3m']:.1%}"),("YTD return",f"{mm['return_ytd']:.1%}"),("20D volatility",f"{mm['volatility']:.1%}"),("Drawdown",f"{mm['drawdown']:.1%}"),("52W high gap",f"{mm['distance_52w_high']:.1%}"),("Regime",regime)]
     for col,(label,value) in zip(k,market_kpis): col.metric(label,value)
     st.caption(f"Market source: {market_source} • MA20 {mm['ma20']:,.1f} • MA50 {mm['ma50']:,.1f} • MA200 {mm['ma200']:,.1f}")
+    liquidity_cols=st.columns(4)
+    liquidity_kpis=[("Latest volume",f"{mm['volume_latest']/1e9:,.2f} bn" if pd.notna(mm['volume_latest']) else "N/A"),("20D average volume",f"{mm['volume_20d_avg']/1e9:,.2f} bn" if pd.notna(mm['volume_20d_avg']) else "N/A"),("Volume / 20D average",f"{mm['volume_ratio_20d']:.2f}x" if pd.notna(mm['volume_ratio_20d']) else "N/A"),("RSI 14",f"{mm['rsi14']:.1f}" if pd.notna(mm['rsi14']) else "N/A")]
+    for col,(label,value) in zip(liquidity_cols,liquidity_kpis): col.metric(label,value)
     tech=market_technical_frame(market)
     fig=make_subplots(rows=2,cols=1,shared_xaxes=True,vertical_spacing=.05,row_heights=[.75,.25])
     fig.add_trace(go.Candlestick(x=tech["date"],open=tech["open"],high=tech["high"],low=tech["low"],close=tech["close"],name=symbol),row=1,col=1)
     for name,color in [("MA20","#17C3B2"),("MA50","#F59E0B"),("MA200","#A78BFA")]: fig.add_trace(go.Scatter(x=tech["date"],y=tech[name],name=name,line=dict(width=1.4,color=color)),row=1,col=1)
     fig.add_trace(go.Bar(x=tech["date"],y=tech["volume"],name="Volume",marker_color="#2F80ED"),row=2,col=1); fig.add_trace(go.Scatter(x=tech["date"],y=tech["Volume_MA20"],name="Volume MA20",line=dict(color="#F8FAFC",width=1)),row=2,col=1)
     fig.update_layout(template="plotly_dark",height=650,title=f"{symbol}: price, trend and liquidity",xaxis_rangeslider_visible=False,legend_orientation="h",legend_y=1.02); st.plotly_chart(fig,use_container_width=True)
-    macro,macro_errors=cached_macro(data["Macro_Indicators"],use_live_macro)
-    st.markdown("### Macro pulse")
-    if "Show_KPI" in macro:
-        kpi_macro=macro[macro["Show_KPI"].astype(str).str.strip().str.lower().isin(["yes","y","true","1"])].copy()
-    else: kpi_macro=macro.head(12).copy()
-    for start_idx in range(0,len(kpi_macro),6):
-        chunk=kpi_macro.iloc[start_idx:start_idx+6]; macro_cards=st.columns(len(chunk))
-        for col,(_,r) in zip(macro_cards,chunk.iterrows()): col.metric(r["Indicator"],f"{r['Current_Value']:,.2f} {r['Unit']}",f"{r['Change']:+,.2f}")
-    display_cols=[c for c in ["As_of","Indicator","Group","Frequency","Current_Value","Previous_Value","Change","Unit","Direction","Market_Implication","Source_Status","Source_Reference","Owner"] if c in macro.columns]
-    dataframe(macro[display_cols])
-    live_count=int(macro["Source_Status"].astype(str).str.contains("Vnstock",case=False,na=False).sum())
-    if use_live_macro:
-        st.caption(f"Macro mode: Vnstock optional overlay • {live_count}/{len(SUPPORTED_LIVE_INDICATORS)} supported indicators live • all other values remain controlled Master inputs.")
-    else:
-        st.caption("Macro mode: Controlled Master Excel input. Turn on 'Try Vnstock macro data' only when the Sponsor package is installed in the deployment environment.")
-    if use_live_macro and macro_errors:
-        with st.expander("Macro API diagnostics"):
-            st.caption("No API key or sensitive authentication data is shown.")
-            for error in macro_errors: st.text(error)
-    history=data.get("Macro_History",pd.DataFrame()).copy()
-    if not history.empty and {"Period_End","Indicator","Value"}.issubset(history.columns):
-        st.markdown("### Macro trends")
-        history["Period_End"]=pd.to_datetime(history["Period_End"],errors="coerce"); history["Value"]=pd.to_numeric(history["Value"],errors="coerce")
-        available=history["Indicator"].dropna().astype(str).drop_duplicates().tolist()
-        default_trends=[x for x in ["CPI YoY","Credit Growth YTD","Deposit Growth YTD","M2 Growth YoY"] if x in available]
-        selected_trends=st.multiselect("Indicators shown in trend chart",available,default=default_trends,max_selections=6)
-        trend=history[history["Indicator"].isin(selected_trends)].dropna(subset=["Period_End","Value"])
-        if not trend.empty:
-            trend_fig=px.line(trend,x="Period_End",y="Value",color="Indicator",markers=True,title="Macro indicators — controlled Master history")
-            trend_fig.update_layout(template="plotly_dark",height=430,yaxis_title="Value (see unit in Master)")
-            st.plotly_chart(trend_fig,use_container_width=True)
+    st.caption("Tab 06 contains market and liquidity indicators only. Price, volume and technical measures are sourced from the live Vnstock market feed when available; cache or labelled fallback is used only when the live request fails.")
 
 with tabs[6]:
     comp=competitor_score(data); name_col=comp.columns[0]; fig=px.bar(comp,x="Competitive_Score",y=name_col,orientation="h",color="Competitive_Score",color_continuous_scale="Blues",title="Competitive position score"); fig.update_layout(template="plotly_dark",height=430); st.plotly_chart(fig,use_container_width=True); dataframe(comp)
@@ -206,7 +175,7 @@ with tabs[13]:
     pdf=board_pack_pdf(ex,mm,regime,quality,advice,offtrack,actions); pptx=board_pack_pptx(ex,regime,quality,advice,offtrack,actions); pack={"as_of":str(ex["as_of"]),"executive_metrics":ex,"market_metrics":mm,"market_regime":regime,"off_track_kpis":offtrack,"open_actions":actions,"data_quality":quality,"top_recommendations":advice.head(5).to_dict(orient="records")}
     c=st.columns(4); c[0].download_button("Board Pack PDF",pdf,"DCVFM_Board_Pack_V4_4.pdf","application/pdf",use_container_width=True); c[1].download_button("Board Pack PPTX",pptx,"DCVFM_Board_Pack_V4_4.pptx","application/vnd.openxmlformats-officedocument.presentationml.presentation",use_container_width=True); c[2].download_button("Board Pack JSON",json.dumps(pack,default=str,ensure_ascii=False,indent=2),"DCVFM_Board_Pack_V4_4.json","application/json",use_container_width=True); c[3].download_button("Recommendations CSV",advice.to_csv(index=False).encode("utf-8-sig"),"DCVFM_Recommendations_V4_4.csv","text/csv",use_container_width=True)
     st.markdown("### Intelligence Copilot")
-    question=st.text_input("Ask about AUM, funds, market, macro, financials, operations or data quality",placeholder="Ví dụ: KPI vận hành nào đang cần xử lý?")
+    question=st.text_input("Ask about AUM, funds, market, liquidity, financials, operations or data quality",placeholder="Ví dụ: KPI vận hành nào đang cần xử lý?")
     if question: st.markdown(f"<div class='advisory-card'>{copilot_answer(question,data,regime)}</div>",unsafe_allow_html=True)
     st.caption("Copilot V4.4 is deterministic and grounded in the loaded Master; it does not make external factual claims.")
 

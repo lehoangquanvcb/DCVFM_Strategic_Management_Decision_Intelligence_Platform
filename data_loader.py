@@ -14,10 +14,9 @@ V4_MANAGEMENT_SHEETS = {
     "Product_Profitability", "Distribution_Channels", "Investor_Behaviour",
     "Regulatory_Compliance", "Product_Strategy", "Business_Plan_KPI",
     "Decision_Tracker",
-    "Macro_Indicators", "Operating_KPI",
+    "Operating_KPI",
     "Scenario_Assumptions", "Financial_Impact_Model", "Scenario_Checks",
     "News_Events",
-    "Macro_History",
 }
 
 

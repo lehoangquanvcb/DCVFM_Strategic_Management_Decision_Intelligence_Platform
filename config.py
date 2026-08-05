@@ -23,6 +23,6 @@ REQUIRED_SHEETS = [
     "Competitors", "Risk_Indicators", "Scenarios", "Advisory_Rules",
     "Product_Profitability", "Distribution_Channels", "Investor_Behaviour",
     "Regulatory_Compliance", "Product_Strategy", "Business_Plan_KPI",
-    "Decision_Tracker", "Macro_Indicators", "Operating_KPI",
+    "Decision_Tracker", "Operating_KPI",
     "Scenario_Assumptions", "Financial_Impact_Model", "Scenario_Checks",
 ]

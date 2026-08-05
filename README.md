@@ -1,19 +1,14 @@
 # DCVFM Corporate Performance, Risk & Management Intelligence Platform V4.4
 
-Maintenance update: the Market, Liquidity & Macro tab now attempts row-level live
-macro retrieval through Vnstock Data and falls back to the labelled Master row
-when an endpoint is unavailable. News & Operating Events also tolerates missing
-or alternative date fields without stopping the Streamlit app.
+Market and liquidity update: tab 06 now contains market and liquidity indicators
+only. VN-Index OHLCV, returns, volatility, drawdown, moving averages, RSI and
+volume measures are retrieved from Vnstock. The app uses the last successful
+cache or a clearly labelled fallback only when the live request fails.
 
 V4.4 upgrades Financial Impact into a linked three-statement management model.
 Users can adjust scenario drivers in the app and immediately compare Base versus
 Scenario income statement, balance sheet and cash flow results. Balance-sheet,
 cash and retained-earnings roll-forward checks are shown explicitly.
-
-Macro manual-input update: `Macro_Indicators` is the controlled current-value
-register and `Macro_History` stores time series for trend charts. Vnstock Macro
-is an optional overlay and is disabled by default, so Streamlit Cloud does not
-report an installation error when the Sponsor package is unavailable.
 
 Author: Le Hoang Quan
 
@@ -25,7 +20,7 @@ V4.3 adds a scenario-to-financial-statements engine to the complete V4.2 operati
 - Financial Impact tab translating market and management scenarios into AUM, revenue, PBT, NPAT, cash flow, assets, equity, ROA and ROE.
 - Formula-driven scenario assumptions, financial impact model and reconciliation checks in the Master Excel.
 - Fund performance, AUM, flows, portfolio and ETF monitoring.
-- Upgraded Market, Liquidity & Macro Intelligence with VN-Index level, 1M/3M/YTD returns, volatility, drawdown, 52-week-high gap, regime, MA20/50/200, volume and macro pulse.
+- Market & Liquidity Intelligence with VN-Index level, 1M/3M/YTD returns, volatility, drawdown, 52-week-high gap, regime, MA20/50/200, RSI14, latest volume, 20-day average volume and volume ratio.
 - Financial performance, product profitability and distribution economics.
 - Business-plan Actual/Budget/Forecast control.
 - Enterprise risk, investor-redemption EWS and compliance cockpit.

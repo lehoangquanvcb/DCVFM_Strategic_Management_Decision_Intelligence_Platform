@@ -29,7 +29,7 @@ def board_pack_pdf(ex, market, regime, quality, advice, offtrack, actions) -> by
     for _,r in advice.head(6).iterrows(): rec_rows.append([str(r["Priority"]),str(r["Domain"]),Paragraph(str(r["Recommended_Action"]),body),str(r["Owner"])])
     rt=Table(rec_rows,colWidths=[20*mm,32*mm,95*mm,28*mm],repeatRows=1)
     rt.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),colors.HexColor("#1F6FEB")),("TEXTCOLOR",(0,0),(-1,0),colors.white),("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("GRID",(0,0),(-1,-1),0.35,colors.HexColor("#CBD5E1")),("VALIGN",(0,0),(-1,-1),"TOP"),("FONTSIZE",(0,0),(-1,-1),8),("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white,colors.HexColor("#F1F5F9")])]))
-    story += [rt, Paragraph("Caveat", h), Paragraph("Company, portfolio, macro and operating rows marked Assumption must be verified before formal management, regulatory or investment use.", body)]
+    story += [rt, Paragraph("Caveat", h), Paragraph("Company, portfolio and operating rows marked Assumption must be verified before formal management, regulatory or investment use.", body)]
     doc.build(story)
     return buf.getvalue()
 

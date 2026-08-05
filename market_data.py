@@ -104,6 +104,9 @@ def market_metrics(df: pd.DataFrame) -> dict:
     frame=df.sort_values("date").copy(); close=frame["close"].dropna(); ret=close.pct_change().dropna(); periods=min(63,len(close)-1)
     last_date=pd.to_datetime(frame.loc[close.index[-1],"date"]); ytd=frame[pd.to_datetime(frame["date"]).dt.year==last_date.year]["close"].dropna()
     high_52w=float(close.tail(252).max()); volume=pd.to_numeric(frame.get("volume"),errors="coerce")
+    volume_20d=float(volume.tail(20).mean()) if volume.notna().any() else np.nan
+    delta=close.diff(); gain=delta.clip(lower=0).tail(14).mean(); loss=(-delta.clip(upper=0)).tail(14).mean()
+    rsi14=float(100-(100/(1+gain/loss))) if pd.notna(loss) and loss>0 else np.nan
     return {
         "level":float(close.iloc[-1]),
         "return_1m":float(close.iloc[-1]/close.iloc[max(0,len(close)-22)]-1),
@@ -113,7 +116,10 @@ def market_metrics(df: pd.DataFrame) -> dict:
         "drawdown":float(close.iloc[-1]/close.cummax().iloc[-1]-1),
         "distance_52w_high":float(close.iloc[-1]/high_52w-1) if high_52w else 0.0,
         "ma20":float(close.tail(20).mean()), "ma50":float(close.tail(50).mean()), "ma200":float(close.tail(200).mean()),
-        "volume_ratio_20d":float(volume.iloc[-1]/volume.tail(20).mean()) if len(volume) and volume.tail(20).mean()>0 else np.nan,
+        "volume_latest":float(volume.iloc[-1]) if len(volume) and pd.notna(volume.iloc[-1]) else np.nan,
+        "volume_20d_avg":volume_20d,
+        "volume_ratio_20d":float(volume.iloc[-1]/volume_20d) if pd.notna(volume_20d) and volume_20d>0 else np.nan,
+        "rsi14":rsi14,
     }
 
 
