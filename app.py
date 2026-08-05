@@ -123,8 +123,18 @@ with tabs[5]:
     k=st.columns(8); market_kpis=[("VN-Index",f"{mm['level']:,.1f}"),("1M return",f"{mm['return_1m']:.1%}"),("3M return",f"{mm['return_3m']:.1%}"),("YTD return",f"{mm['return_ytd']:.1%}"),("20D volatility",f"{mm['volatility']:.1%}"),("Drawdown",f"{mm['drawdown']:.1%}"),("52W high gap",f"{mm['distance_52w_high']:.1%}"),("Regime",regime)]
     for col,(label,value) in zip(k,market_kpis): col.metric(label,value)
     st.caption(f"Market source: {market_source} • MA20 {mm['ma20']:,.1f} • MA50 {mm['ma50']:,.1f} • MA200 {mm['ma200']:,.1f}")
+    volume_series=pd.to_numeric(market.get("volume",pd.Series(dtype=float)),errors="coerce").dropna()
+    close_series=pd.to_numeric(market.get("close",pd.Series(dtype=float)),errors="coerce").dropna()
+    volume_latest=mm.get("volume_latest",float(volume_series.iloc[-1]) if not volume_series.empty else float("nan"))
+    volume_20d_avg=mm.get("volume_20d_avg",float(volume_series.tail(20).mean()) if not volume_series.empty else float("nan"))
+    volume_ratio_20d=mm.get("volume_ratio_20d",volume_latest/volume_20d_avg if pd.notna(volume_20d_avg) and volume_20d_avg>0 else float("nan"))
+    if "rsi14" in mm:
+        rsi14=mm["rsi14"]
+    else:
+        price_delta=close_series.diff(); avg_gain=price_delta.clip(lower=0).tail(14).mean(); avg_loss=(-price_delta.clip(upper=0)).tail(14).mean()
+        rsi14=100-(100/(1+avg_gain/avg_loss)) if pd.notna(avg_loss) and avg_loss>0 else float("nan")
     liquidity_cols=st.columns(4)
-    liquidity_kpis=[("Latest volume",f"{mm['volume_latest']/1e9:,.2f} bn" if pd.notna(mm['volume_latest']) else "N/A"),("20D average volume",f"{mm['volume_20d_avg']/1e9:,.2f} bn" if pd.notna(mm['volume_20d_avg']) else "N/A"),("Volume / 20D average",f"{mm['volume_ratio_20d']:.2f}x" if pd.notna(mm['volume_ratio_20d']) else "N/A"),("RSI 14",f"{mm['rsi14']:.1f}" if pd.notna(mm['rsi14']) else "N/A")]
+    liquidity_kpis=[("Latest volume",f"{volume_latest/1e9:,.2f} bn" if pd.notna(volume_latest) else "N/A"),("20D average volume",f"{volume_20d_avg/1e9:,.2f} bn" if pd.notna(volume_20d_avg) else "N/A"),("Volume / 20D average",f"{volume_ratio_20d:.2f}x" if pd.notna(volume_ratio_20d) else "N/A"),("RSI 14",f"{rsi14:.1f}" if pd.notna(rsi14) else "N/A")]
     for col,(label,value) in zip(liquidity_cols,liquidity_kpis): col.metric(label,value)
     tech=market_technical_frame(market)
     fig=make_subplots(rows=2,cols=1,shared_xaxes=True,vertical_spacing=.05,row_heights=[.75,.25])
