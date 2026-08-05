@@ -20,7 +20,7 @@ def inject_css():
     .advisory-card {background:#10233d;border-left:4px solid #2F80ED;border-radius:10px;padding:14px 16px;margin:8px 0;}
     .signal-high {color:#FCA5A5;font-weight:700}.signal-watch {color:#FCD34D;font-weight:700}.muted {color:#8FA3BF}
     h1,h2,h3 {letter-spacing:-.02em;}
-    .platform-header {margin:0 0 .55rem 0;}
+    .platform-header {margin:0 0 .55rem 0; padding-top:2.15rem;}
     .platform-title {color:#F8FAFC; font-size:clamp(1.55rem,2.15vw,2.05rem); font-weight:750; line-height:1.12; letter-spacing:-.025em; margin:0;}
     .platform-author {color:#AAB8CB; font-size:1rem; font-weight:500; line-height:1.25; margin-top:.22rem;}
     .tabs-note {color:#B8C7DB; background:rgba(16,35,61,.72); border:1px solid #233A57; border-left:3px solid #2F80ED; border-radius:8px; font-size:.88rem; line-height:1.35; padding:.48rem .72rem; margin:.1rem 0 .55rem 0;}
@@ -44,7 +44,7 @@ def inject_css():
         [data-testid="stMetricLabel"] {font-size:.68rem;}
         [data-testid="stMetricValue"] {font-size:1rem;}
         [data-testid="stMetricDelta"] {font-size:.61rem;}
-        .platform-header {margin-bottom:.45rem;}
+        .platform-header {margin-bottom:.45rem; padding-top:2.4rem;}
         .platform-title {font-size:1.38rem; line-height:1.16;}
         .platform-author {font-size:.92rem; margin-top:.2rem;}
         .tabs-note {font-size:.8rem; padding:.42rem .58rem;}
