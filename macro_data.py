@@ -12,9 +12,10 @@ INDICATOR_SPECS = {
     "Credit Growth YTD": {"unit": "%", "field": "credit_growth"},
     "M2 Growth YoY": {"unit": "%", "field": "total"},
     "USD/VND": {"unit": "VND/USD", "field": "USD"},
-    "Policy Rate": {"unit": "%", "field": "refinance"},
+    "Refinancing Rate": {"unit": "%", "field": "refinance"},
     "10Y Government Bond Yield": {"unit": "%", "field": "close"},
 }
+SUPPORTED_LIVE_INDICATORS = tuple(INDICATOR_SPECS)
 
 
 def _macro_client():
@@ -114,7 +115,7 @@ def _fetch_one(client, indicator: str) -> tuple[pd.Timestamp, float, float]:
         if 10 <= current < 100:
             current, previous = current * 1000.0, previous * 1000.0
         return stamp, current, previous
-    if indicator == "Policy Rate":
+    if indicator == "Refinancing Rate":
         raw = _invoke(currency.policy_rate, [{"start": "2020-01-01", "end": date.today().isoformat()}, {"length": 30}, {}])
         return _latest_pair(_series(_clean(raw), "refinance"))
     if indicator == "10Y Government Bond Yield":
@@ -124,7 +125,7 @@ def _fetch_one(client, indicator: str) -> tuple[pd.Timestamp, float, float]:
     raise KeyError(indicator)
 
 
-def get_macro_indicators(master: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
+def get_macro_indicators(master: pd.DataFrame, use_live: bool = False) -> tuple[pd.DataFrame, list[str]]:
     """Overlay live Vnstock observations on the Master, with row-level fallback."""
     fallback = master.copy()
     for col in ["Current_Value", "Previous_Value"]:
@@ -132,11 +133,12 @@ def get_macro_indicators(master: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]
     fallback["Indicator"] = fallback["Indicator"].astype(str).str.strip()
     rows = []
     errors = []
-    try:
-        client, source_label = _macro_client()
-    except Exception as exc:
-        client, source_label = None, ""
-        errors.append(str(exc))
+    client, source_label = None, ""
+    if use_live:
+        try:
+            client, source_label = _macro_client()
+        except Exception as exc:
+            errors.append(str(exc))
 
     for _, base in fallback.iterrows():
         row = base.to_dict()
@@ -153,11 +155,13 @@ def get_macro_indicators(master: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]
                     "Source_Reference": "Vnstock Macro API",
                 })
             except Exception as exc:
-                row["Source_Status"] = "Master fallback"
                 errors.append(f"{indicator}: {type(exc).__name__}: {exc}")
         rows.append(row)
 
     out = pd.DataFrame(rows)
+    if "Display_Order" in out:
+        out["Display_Order"] = pd.to_numeric(out["Display_Order"], errors="coerce")
+        out = out.sort_values(["Display_Order", "Indicator"], na_position="last")
     out["Change"] = out["Current_Value"] - out["Previous_Value"]
     out["Direction"] = np.select([out["Change"] > 0, out["Change"] < 0], ["Up", "Down"], default="Flat")
     return out, errors

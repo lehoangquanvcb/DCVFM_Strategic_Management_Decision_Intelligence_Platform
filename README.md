@@ -1,9 +1,19 @@
-# DCVFM Corporate Performance, Risk & Management Intelligence Platform V4.3
+# DCVFM Corporate Performance, Risk & Management Intelligence Platform V4.4
 
 Maintenance update: the Market, Liquidity & Macro tab now attempts row-level live
 macro retrieval through Vnstock Data and falls back to the labelled Master row
 when an endpoint is unavailable. News & Operating Events also tolerates missing
 or alternative date fields without stopping the Streamlit app.
+
+V4.4 upgrades Financial Impact into a linked three-statement management model.
+Users can adjust scenario drivers in the app and immediately compare Base versus
+Scenario income statement, balance sheet and cash flow results. Balance-sheet,
+cash and retained-earnings roll-forward checks are shown explicitly.
+
+Macro manual-input update: `Macro_Indicators` is the controlled current-value
+register and `Macro_History` stores time series for trend charts. Vnstock Macro
+is an optional overlay and is disabled by default, so Streamlit Cloud does not
+report an installation error when the Sponsor package is unavailable.
 
 Author: Le Hoang Quan
 
@@ -25,7 +35,7 @@ V4.3 adds a scenario-to-financial-statements engine to the complete V4.2 operati
 
 ## Data architecture
 
-- Company and operating inputs: `data/DCVFM_Corporate_Performance_Risk_Management_Intelligence_Master_V4_3.xlsx`.
+- Company and operating inputs: `data/DCVFM_Corporate_Performance_Risk_Management_Intelligence_Master_V4_4.xlsx`.
 - Live market inputs: authenticated Vnstock routes.
 - Failure order: live Vnstock → last successful cache → clearly labelled illustrative fallback.
 - The API key is never written to source code, Master Excel, logs or downloads.

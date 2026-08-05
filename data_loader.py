@@ -17,6 +17,7 @@ V4_MANAGEMENT_SHEETS = {
     "Macro_Indicators", "Operating_KPI",
     "Scenario_Assumptions", "Financial_Impact_Model", "Scenario_Checks",
     "News_Events",
+    "Macro_History",
 }
 
 
