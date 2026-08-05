@@ -81,12 +81,44 @@ with tabs[0]:
     cols=st.columns(8)
     vals=[("AUM",f"{ex['aum']/1000:,.1f} tn",f"{ex['aum_growth']:.1%} MoM"),("3M net flow",f"{ex['flow_3m']:,.0f} bn",None),("VN-Index",f"{mm['level']:,.1f}",f"{mm['return_3m']:.1%} / 3M"),("Regime",regime,None),("Risk",f"{ex['risk_score']:.0f}/100",None),("Off-track KPIs",str(offtrack),"FY forecast"),("Data quality",f"{quality['score']:.0f}/100",f"{quality['overdue']} overdue"),("Actions",str(actions['open']),f"{actions['avg_progress']:.0%} progress")]
     for c,(label,value,delta) in zip(cols,vals): c.metric(label,value,delta)
-    left,right=st.columns([1.6,1])
+    st.markdown("### Executive performance overview")
+    left,centre,right=st.columns([1.25,1.05,.9])
     with left:
-        aum=data["AUM"].groupby("Date",as_index=False)["AUM_VND_bn"].sum(); fig=px.area(aum,x="Date",y="AUM_VND_bn",title="Total AUM trajectory",color_discrete_sequence=[COLORS["teal"]]); fig.update_layout(template="plotly_dark",height=370,yaxis_title="VND bn"); st.plotly_chart(fig,use_container_width=True)
+        aum=data["AUM"].groupby("Date",as_index=False)["AUM_VND_bn"].sum()
+        fig=px.area(aum,x="Date",y="AUM_VND_bn",title="Total AUM trajectory",color_discrete_sequence=[COLORS["teal"]])
+        fig.update_layout(template="plotly_dark",height=360,yaxis_title="VND bn",margin=dict(l=20,r=10,t=55,b=30)); st.plotly_chart(fig,use_container_width=True)
+    with centre:
+        exec_bridge=aum_bridge(data).tail(12).melt(id_vars="Date",value_vars=["Net_Flow_VND_bn","Market_and_Other_Effect"],var_name="Driver",value_name="VND_bn")
+        exec_bridge["Driver"]=exec_bridge["Driver"].replace({"Net_Flow_VND_bn":"Net flow","Market_and_Other_Effect":"Market & other"})
+        fig=px.bar(exec_bridge,x="Date",y="VND_bn",color="Driver",barmode="relative",title="AUM growth drivers",color_discrete_map={"Net flow":COLORS["blue"],"Market & other":COLORS["teal"]})
+        fig.update_layout(template="plotly_dark",height=360,yaxis_title="VND bn",legend_orientation="h",legend_y=1.08,margin=dict(l=20,r=10,t=55,b=30)); st.plotly_chart(fig,use_container_width=True)
     with right:
         st.markdown("### Top management actions")
-        for _,r in advice.head(4).iterrows(): st.markdown(f"<div class='advisory-card'><b>{r['Priority']} · {r['Domain']}</b><br>{r['Recommended_Action']}<br><span class='muted'>Owner: {r['Owner']}</span></div>",unsafe_allow_html=True)
+        for _,r in advice.head(3).iterrows(): st.markdown(f"<div class='advisory-card'><b>{r['Priority']} · {r['Domain']}</b><br>{r['Recommended_Action']}<br><span class='muted'>Owner: {r['Owner']}</span></div>",unsafe_allow_html=True)
+
+    flow_panel,performance_panel=st.columns(2)
+    with flow_panel:
+        latest_flow_date=data["Fund_Flows"]["Date"].max(); recent_flows=data["Fund_Flows"].loc[data["Fund_Flows"]["Date"]>=latest_flow_date-pd.DateOffset(months=3)].groupby("Fund_Code",as_index=False)["Net_Flow_VND_bn"].sum().sort_values("Net_Flow_VND_bn")
+        fig=px.bar(recent_flows,x="Net_Flow_VND_bn",y="Fund_Code",orientation="h",color="Net_Flow_VND_bn",color_continuous_scale="RdYlGn",title="Three-month net flow by fund")
+        fig.update_layout(template="plotly_dark",height=350,xaxis_title="VND bn",yaxis_title=None,coloraxis_showscale=False,margin=dict(l=20,r=10,t=55,b=30)); st.plotly_chart(fig,use_container_width=True)
+    with performance_panel:
+        exec_perf=advanced_fund_analytics(data).copy()
+        fig=px.scatter(exec_perf,x="Volatility",y="Annualized_Return",text="Fund_Code",size="NAV",color="Alpha_3M",color_continuous_scale="RdYlGn",title="Fund risk–return positioning",hover_data=["Sharpe","Max_Drawdown"])
+        fig.update_traces(textposition="top center"); fig.update_layout(template="plotly_dark",height=350,xaxis_tickformat=".0%",yaxis_tickformat=".0%",margin=dict(l=20,r=10,t=55,b=30)); st.plotly_chart(fig,use_container_width=True)
+
+    plan_panel,risk_panel=st.columns(2)
+    with plan_panel:
+        plan_view=plan_kpis.copy(); plan_view["Forecast_Attainment"]=plan_view["FY_Forecast"]/plan_view["FY_Plan"].replace(0,pd.NA)
+        fig=px.bar(plan_view.sort_values("Forecast_Attainment"),x="Forecast_Attainment",y="KPI",orientation="h",color="Status",title="Full-year forecast attainment",color_discrete_map={"ON TRACK":COLORS["green"],"WATCH":COLORS["amber"],"OFF TRACK":COLORS["red"]},hover_data=["FY_Forecast","FY_Plan","Owner"])
+        fig.add_vline(x=1,line_dash="dash",line_color="#F8FAFC"); fig.update_layout(template="plotly_dark",height=380,xaxis_tickformat=".0%",xaxis_title="Forecast / Plan",yaxis_title=None,margin=dict(l=20,r=10,t=55,b=30)); st.plotly_chart(fig,use_container_width=True)
+    with risk_panel:
+        risk_view=data["Risk_Indicators"].copy(); risk_view["Current_Score"]=pd.to_numeric(risk_view["Current_Score"],errors="coerce")
+        fig=px.bar(risk_view.sort_values("Current_Score"),x="Current_Score",y="Risk_Type",orientation="h",color="Current_Score",range_color=[0,100],color_continuous_scale="RdYlGn_r",title="Enterprise risk priorities",hover_data=["Severity","Owner","Recommended_Action"])
+        fig.update_layout(template="plotly_dark",height=380,xaxis_title="Risk score / 100",yaxis_title=None,coloraxis_showscale=False,margin=dict(l=20,r=10,t=55,b=30)); st.plotly_chart(fig,use_container_width=True)
+
+    st.markdown("### Management watchlist")
+    watchlist=plan_view.loc[plan_view["Status"].isin(["WATCH","OFF TRACK"]),["KPI","Status","Forecast_Attainment","Owner"]].sort_values("Forecast_Attainment")
+    dataframe(watchlist.style.format({"Forecast_Attainment":"{:.1%}"}))
 
 with tabs[1]:
     perf=advanced_fund_analytics(data)
