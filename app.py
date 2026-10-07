@@ -18,6 +18,7 @@ from export_pack import board_pack_pdf, board_pack_pptx
 from market_data import get_market_data, market_metrics, market_regime, market_technical_frame
 from ui import dataframe, header, inject_css, tabs_note
 from vnstock_auth import configure_vnstock_auth, resolve_api_key
+from investment_ai import load_stock_universe, score_stocks, construct_portfolio
 
 st.set_page_config(page_title=APP_NAME, page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 inject_css()
@@ -75,7 +76,7 @@ if market_error:
         st.info("Live Vnstock and local cache are unavailable; the platform is using a clearly labelled illustrative fallback. Company data still comes from Master Excel.")
 
 tabs_note()
-tabs=st.tabs(["01 Executive","02 Fund Performance","03 AUM & Flows","04 Portfolio","05 ETF","06 Market & Liquidity","07 Competitors","08 Financials","09 Risk & EWS","10 Stress Test","11 Ownership & Governance","12 Events & Data Quality","13 Advisory & Actions","14 Board Pack & Copilot","15 Commercial Intelligence","16 Investor & Compliance","17 Product & Business Plan","18 Management Decisions","19 Financial Impact"])
+tabs=st.tabs(["01 Executive","02 Fund Performance","03 AUM & Flows","04 Portfolio","05 ETF","06 Market & Liquidity","07 Competitors","08 Financials","09 Risk & EWS","10 Stress Test","11 Ownership & Governance","12 Events & Data Quality","13 Advisory & Actions","14 Board Pack & Copilot","15 Commercial Intelligence","16 Investor & Compliance","17 Product & Business Plan","18 Management Decisions","19 Financial Impact","20 Stock Screener AI","21 Quant Opportunity","22 Sell & Risk Radar","23 AI Stock Analyst","24 AI Portfolio","25 CIO AI Copilot"])
 
 with tabs[0]:
     cols=st.columns(8)
@@ -309,3 +310,43 @@ with tabs[18]:
     if abs(row["Balance_Check_VND_bn"])>0.1: st.error("Model control failed: projected balance sheet does not balance.")
     if abs(row["Cash_Tie_Check_VND_bn"])>0.1 or abs(row["Retained_Earnings_Check_VND_bn"])>0.1: st.error("Three-statement linkage failed: review the cash or retained-earnings roll-forward.")
     st.caption("Illustrative management forecast. Editable values affect the current session only. Replace blue assumptions in the Master with approved budget/actual data before formal use.")
+
+
+# --- V4.4 baseline + V3.1 AI/Silver investment intelligence extension ---
+stock_raw,stock_source=load_stock_universe(); stock_scores=score_stocks(stock_raw)
+with tabs[19]:
+    st.markdown("### Stock Screener AI")
+    st.caption(f"Source: {stock_source}. Production target: Vnstock Silver market-screener + Fundamental/Insights. Demo rows are never presented as live recommendations.")
+    c1,c2,c3=st.columns(3); min_roe=c1.number_input("Minimum ROE",0.0,1.0,.15,.01); max_pe=c2.number_input("Maximum P/E",1.0,100.0,20.0,1.0); min_liq=c3.slider("Minimum liquidity score",0,100,50)
+    screened=stock_scores[(stock_scores.roe>=min_roe)&(stock_scores.pe<=max_pe)&(stock_scores.liquidity_score>=min_liq)]
+    dataframe(screened)
+with tabs[20]:
+    st.markdown("### Quant Opportunity Radar")
+    threshold=st.slider("Minimum DCVFM Score",0,100,65)
+    dataframe(stock_scores.loc[stock_scores.DCVFM_Score>=threshold,["symbol","sector","close","DCVFM_Score","Signal","Holding_Horizon","Fundamental","Valuation","Momentum","Money_Flow","Risk_Liquidity","Model_Upside_Pct"]])
+    if "Illustrative" in stock_source: st.warning("Illustrative universe is active. Run refresh_silver_ai.py and create the Silver cache before treating signals as current-market output.")
+with tabs[21]:
+    st.markdown("### Sell & Risk Radar")
+    dataframe(stock_scores.sort_values("DCVFM_Score").head(15)[["symbol","sector","close","DCVFM_Score","Signal","Fundamental","Valuation","Momentum","Money_Flow","Risk_Liquidity"]])
+    st.caption("REDUCE/SELL is a model research signal, subject to mandate, liquidity, tracking error and Investment Committee review.")
+with tabs[22]:
+    st.markdown("### AI Stock Analyst")
+    ticker=st.selectbox("Stock",stock_scores.symbol.tolist(),key="ai_stock")
+    r=stock_scores.loc[stock_scores.symbol==ticker].iloc[0]
+    st.markdown(f"#### {ticker} — {r['Signal']} | {r['DCVFM_Score']:.1f}/100 | {r['Holding_Horizon']}")
+    cols=st.columns(5)
+    for col,(label,val) in zip(cols,[("Fundamental",r.Fundamental),("Valuation",r.Valuation),("Momentum",r.Momentum),("Money Flow",r.Money_Flow),("Risk/Liquidity",r.Risk_Liquidity)]): col.metric(label,f"{val:.0f}")
+    st.info("AI memo contract: verified Silver data/news first → Thesis → Catalysts → Risks → Entry → Exit triggers. Missing evidence must be disclosed; AI must not invent figures.")
+with tabs[23]:
+    st.markdown("### AI Portfolio Constructor")
+    profile_ai=st.selectbox("Portfolio profile",["Conservative","Balanced","Growth","Aggressive"],index=1,key="ai_portfolio")
+    ideal,cash=construct_portfolio(stock_scores,profile_ai)
+    if ideal.empty: st.warning("No securities pass the BUY threshold.")
+    else: dataframe(ideal[["symbol","sector","DCVFM_Score","Signal","Holding_Horizon","Weight_Pct"]]); st.metric("Strategic cash reserve",f"{cash}%")
+    st.caption("Production optimizer should additionally enforce sector/single-name caps, covariance, liquidity, turnover, benchmark tracking error and mandate constraints.")
+with tabs[24]:
+    st.markdown("### CIO AI Copilot")
+    q=st.selectbox("Decision question",["Which stocks have the strongest 3–6 month risk-adjusted setup?","Why is the top BUY stronger than the first HOLD?","How should the portfolio change if VN-Index falls 10%?","Which positions should be reduced first if liquidity deteriorates?","Summarize market regime, sector rotation and recommended actions."])
+    st.code(q,language="text")
+    st.write("Required output: **Observation → Evidence → Diagnosis → Investment View → Action → Horizon → Risk/Exit Trigger**.")
+    st.warning("For security, Sponsor credentials stay in the licensed local/secured environment; the public Streamlit layer consumes only permitted cache/derived outputs.")

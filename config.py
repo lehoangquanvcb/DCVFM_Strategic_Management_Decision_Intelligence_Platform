@@ -1,7 +1,7 @@
 from pathlib import Path
 
 APP_NAME = "Fund Performance, Risk & Management Intelligence Platform"
-APP_VERSION = "V4.4"
+APP_VERSION = "V4.4 + V3.1 AI/Silver"
 AUTHOR = "Le Hoang Quan"
 ROOT = Path(__file__).resolve().parent
 DEFAULT_MASTER = ROOT / "data" / "DCVFM_Corporate_Performance_Risk_Management_Intelligence_Master_V4_4.xlsx"

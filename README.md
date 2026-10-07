@@ -43,3 +43,9 @@ python -m streamlit run app.py
 ```
 
 For Streamlit Community Cloud, store `VNSTOCK_API_KEY` in App Settings → Secrets. Rows labelled `Assumption` must be replaced or verified before formal management or regulatory use.
+
+
+## V3.1 AI/Silver Extension (2026-10-06)
+The original V4.4 platform and Master workbook are preserved. Six investment-intelligence tabs were added: Stock Screener AI, Quant Opportunity Radar, Sell & Risk Radar, AI Stock Analyst, AI Portfolio Constructor, and CIO AI Copilot.
+
+Local Silver bootstrap: `python refresh_silver_ai.py`. Sponsor credentials are never committed. If `data_cache/silver_stock_snapshot.csv` is absent, the new tabs explicitly show illustrative demo data and must not be treated as live recommendations.
