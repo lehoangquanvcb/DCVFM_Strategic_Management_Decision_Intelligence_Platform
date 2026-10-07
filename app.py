@@ -18,7 +18,7 @@ from export_pack import board_pack_pdf, board_pack_pptx
 from market_data import get_market_data, market_metrics, market_regime, market_technical_frame
 from ui import dataframe, header, inject_css, tabs_note
 from vnstock_auth import configure_vnstock_auth, resolve_api_key
-from investment_ai import load_stock_universe, score_stocks, construct_portfolio
+from investment_ai import load_stock_universe, score_stocks, construct_portfolio, load_silver_flow
 
 st.set_page_config(page_title=APP_NAME, page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 inject_css()
@@ -35,6 +35,19 @@ with st.sidebar:
     uploaded=st.file_uploader("Upload Master Excel",type=["xlsx"])
     st.caption("No upload: packaged V4.4 Master is used.")
     if st.button("Refresh cached data",use_container_width=True): st.cache_data.clear(); st.rerun()
+    st.divider()
+    NAV_PAGES=[
+        "01 Executive Command Center",
+        "02 Funds, AUM & Portfolio",
+        "03 Market & Competitors",
+        "04 Financials & Scenarios",
+        "05 Risk, Governance & Data Quality",
+        "06 Advisory, Decisions & Board Pack",
+        "07 Commercial, Investor & Product Strategy",
+        "08 Stock Intelligence AI",
+        "09 Portfolio & CIO AI",
+    ]
+    selected_page=st.radio("Navigation",NAV_PAGES,index=0,key="main_vertical_nav")
 
 source=uploaded.getvalue() if uploaded else str(DEFAULT_MASTER)
 try: data=cached_master(source)
@@ -69,16 +82,16 @@ with st.sidebar:
 market,market_source,market_error=cached_market(symbol,start.isoformat(),date.today().isoformat(),str(cfg.get("Preferred_Source","VCI")),fallback,float(cfg.get("Offline_Base_Index",1265)))
 mm=market_metrics(market); regime=market_regime(mm); ex=executive_metrics(data); quality=quality_summary(data); actions=action_summary(data); advice=generate_advisories(data,regime); plan_kpis=business_plan_kpi(data); offtrack=int((plan_kpis["Status"]=="OFF TRACK").sum())
 header(APP_VERSION,AUTHOR)
+stock_raw,stock_source=load_stock_universe(); stock_scores=score_stocks(stock_raw)
+silver_flow,silver_flow_source=load_silver_flow()
 if market_error:
     if market_source == "Vnstock Cache":
         st.info("Live Vnstock request failed; the platform is using the last successful authenticated market cache.")
     else:
         st.info("Live Vnstock and local cache are unavailable; the platform is using a clearly labelled illustrative fallback. Company data still comes from Master Excel.")
 
-tabs_note()
-tabs=st.tabs(["01 Executive","02 Fund Performance","03 AUM & Flows","04 Portfolio","05 ETF","06 Market & Liquidity","07 Competitors","08 Financials","09 Risk & EWS","10 Stress Test","11 Ownership & Governance","12 Events & Data Quality","13 Advisory & Actions","14 Board Pack & Copilot","15 Commercial Intelligence","16 Investor & Compliance","17 Product & Business Plan","18 Management Decisions","19 Financial Impact","20 Stock Screener AI","21 Quant Opportunity","22 Sell & Risk Radar","23 AI Stock Analyst","24 AI Portfolio","25 CIO AI Copilot"])
-
-with tabs[0]:
+# Main navigation is vertical in the left sidebar. Related legacy tabs are consolidated below.
+if selected_page == '01 Executive Command Center':
     cols=st.columns(8)
     vals=[("AUM",f"{ex['aum']/1000:,.1f} tn",f"{ex['aum_growth']:.1%} MoM"),("3M net flow",f"{ex['flow_3m']:,.0f} bn",None),("VN-Index",f"{mm['level']:,.1f}",f"{mm['return_3m']:.1%} / 3M"),("Regime",regime,None),("Risk",f"{ex['risk_score']:.0f}/100",None),("Off-track KPIs",str(offtrack),"FY forecast"),("Data quality",f"{quality['score']:.0f}/100",f"{quality['overdue']} overdue"),("Actions",str(actions['open']),f"{actions['avg_progress']:.0%} progress")]
     for c,(label,value,delta) in zip(cols,vals): c.metric(label,value,delta)
@@ -121,7 +134,42 @@ with tabs[0]:
     watchlist=plan_view.loc[plan_view["Status"].isin(["WATCH","OFF TRACK"]),["KPI","Status","Forecast_Attainment","Owner"]].sort_values("Forecast_Attainment")
     dataframe(watchlist.style.format({"Forecast_Attainment":"{:.1%}"}))
 
-with tabs[1]:
+
+    st.markdown("### Market & investment intelligence")
+    live_mode="Illustrative" not in stock_source and "demo" not in stock_source.lower()
+    if live_mode and not stock_scores.empty:
+        valid=stock_scores.dropna(subset=["DCVFM_Score"]).copy()
+        buys=valid[valid["Signal"].astype(str).isin(["BUY","STRONG BUY"])].head(5)
+        sells=valid[valid["Signal"].astype(str).isin(["SELL","REDUCE"])].sort_values("DCVFM_Score").head(5)
+        ideal_exec,cash_exec=construct_portfolio(valid,"Balanced")
+        ec=st.columns(4)
+        ec[0].metric("Investment data", "SILVER CACHE")
+        ec[1].metric("BUY candidates",len(buys))
+        ec[2].metric("REDUCE / SELL",len(sells))
+        ec[3].metric("Recommended cash",f"{cash_exec}%")
+        a,b,c=st.columns(3)
+        with a:
+            st.markdown("#### Recommended BUY")
+            dataframe(buys[[x for x in ["symbol","DCVFM_Score","Signal","Holding_Horizon"] if x in buys.columns]]) if not buys.empty else st.info("No BUY signal passes current model rules.")
+        with b:
+            st.markdown("#### Recommended REDUCE / SELL")
+            dataframe(sells[[x for x in ["symbol","DCVFM_Score","Signal","Holding_Horizon"] if x in sells.columns]]) if not sells.empty else st.info("No REDUCE/SELL signal passes current model rules.")
+        with c:
+            st.markdown("#### Recommended portfolio")
+            dataframe(ideal_exec[[x for x in ["symbol","Weight_Pct","DCVFM_Score","Signal"] if x in ideal_exec.columns]]) if not ideal_exec.empty else st.info("Portfolio not generated because evidence is insufficient.")
+    else:
+        st.warning("Full-factor Silver recommendation cache is not available. BUY/SELL and recommended portfolio are intentionally withheld rather than inferred from demo data.")
+        if not silver_flow.empty and "money_flow_score" in silver_flow.columns:
+            st.caption(f"Verified source available: {silver_flow_source}. Showing flow leaders/laggards, not BUY/SELL recommendations.")
+            fa,fb=st.columns(2)
+            with fa:
+                st.markdown("#### Silver money-flow leaders")
+                dataframe(silver_flow.head(8)[[c for c in ["symbol","money_flow_score","foreign_flow_score","proprietary_flow_score","active_flow_score"] if c in silver_flow.columns]])
+            with fb:
+                st.markdown("#### Silver money-flow laggards")
+                dataframe(silver_flow.tail(8).sort_values("money_flow_score")[[c for c in ["symbol","money_flow_score","foreign_flow_score","proprietary_flow_score","active_flow_score"] if c in silver_flow.columns]])
+
+if selected_page == '02 Funds, AUM & Portfolio':
     perf=advanced_fund_analytics(data)
     formatters={c:"{:.1%}" for c in ["Return_1M","Return_3M","Return_12M","Alpha_3M","Annualized_Return","Volatility","Tracking_Error","Max_Drawdown","Positive_Month_Ratio","Peer_Percentile"]}
     formatters.update({"NAV":"{:,.2f}","Sharpe":"{:.2f}","Sortino":"{:.2f}","Information_Ratio":"{:.2f}"})
@@ -129,7 +177,7 @@ with tabs[1]:
     nav=data["NAV_History"].copy(); nav["Indexed_NAV"]=nav.groupby("Fund_Code")["NAV"].transform(lambda s:s/s.iloc[0]*100)
     fig=px.line(nav,x="Date",y="Indexed_NAV",color="Fund_Code",title="Indexed NAV and performance persistence"); fig.update_layout(template="plotly_dark",height=440); st.plotly_chart(fig,use_container_width=True)
 
-with tabs[2]:
+if selected_page == '02 Funds, AUM & Portfolio':
     bridge=aum_bridge(data); a,b=st.columns(2)
     with a:
         fig=px.area(data["AUM"],x="Date",y="AUM_VND_bn",color="Fund_Code",title="AUM composition"); fig.update_layout(template="plotly_dark",height=420); st.plotly_chart(fig,use_container_width=True)
@@ -137,7 +185,7 @@ with tabs[2]:
         recent=bridge.tail(12).melt(id_vars="Date",value_vars=["Net_Flow_VND_bn","Market_and_Other_Effect"],var_name="Driver",value_name="VND_bn"); fig=px.bar(recent,x="Date",y="VND_bn",color="Driver",barmode="relative",title="AUM bridge: flow vs market/other effect"); fig.update_layout(template="plotly_dark",height=420); st.plotly_chart(fig,use_container_width=True)
     dataframe(flow_table(data))
 
-with tabs[3]:
+if selected_page == '02 Funds, AUM & Portfolio':
     port=data["Portfolio"]; fund_port=port[port["Fund_Code"]==selected_fund].copy(); a,b=st.columns(2)
     with a:
         fig=px.treemap(fund_port,path=["Sector","Ticker"],values="Weight_Pct",title=f"{selected_fund} allocation"); fig.update_layout(template="plotly_dark",height=480); st.plotly_chart(fig,use_container_width=True)
@@ -148,11 +196,11 @@ with tabs[3]:
         else: st.info("No attribution rows for selected strategy.")
     dataframe(fund_port)
 
-with tabs[4]:
+if selected_page == '02 Funds, AUM & Portfolio':
     etfs=["E1VFVN30","FUEVFVND"]; p=advanced_fund_analytics(data).query("Fund_Code in @etfs"); dataframe(p.style.format(formatters))
     ef=data["Fund_Flows"].query("Fund_Code in @etfs"); fig=px.bar(ef,x="Date",y="Net_Flow_VND_bn",color="Fund_Code",barmode="group",title="ETF creation/redemption proxy"); fig.update_layout(template="plotly_dark",height=440); st.plotly_chart(fig,use_container_width=True)
 
-with tabs[5]:
+if selected_page == '03 Market & Competitors':
     k=st.columns(8); market_kpis=[("VN-Index",f"{mm['level']:,.1f}"),("1M return",f"{mm['return_1m']:.1%}"),("3M return",f"{mm['return_3m']:.1%}"),("YTD return",f"{mm['return_ytd']:.1%}"),("20D volatility",f"{mm['volatility']:.1%}"),("Drawdown",f"{mm['drawdown']:.1%}"),("52W high gap",f"{mm['distance_52w_high']:.1%}"),("Regime",regime)]
     for col,(label,value) in zip(k,market_kpis): col.metric(label,value)
     st.caption(f"Market source: {market_source} • MA20 {mm['ma20']:,.1f} • MA50 {mm['ma50']:,.1f} • MA200 {mm['ma200']:,.1f}")
@@ -177,25 +225,25 @@ with tabs[5]:
     fig.update_layout(template="plotly_dark",height=650,title=f"{symbol}: price, trend and liquidity",xaxis_rangeslider_visible=False,legend_orientation="h",legend_y=1.02); st.plotly_chart(fig,use_container_width=True)
     st.caption("Tab 06 contains market and liquidity indicators only. Price, volume and technical measures are sourced from the live Vnstock market feed when available; cache or labelled fallback is used only when the live request fails.")
 
-with tabs[6]:
+if selected_page == '03 Market & Competitors':
     comp=competitor_score(data); name_col=comp.columns[0]; fig=px.bar(comp,x="Competitive_Score",y=name_col,orientation="h",color="Competitive_Score",color_continuous_scale="Blues",title="Competitive position score"); fig.update_layout(template="plotly_dark",height=430); st.plotly_chart(fig,use_container_width=True); dataframe(comp)
 
-with tabs[7]:
+if selected_page == '04 Financials & Scenarios':
     fin=integrated_financial_model(data); c1,c2=st.columns(2)
     c1.plotly_chart(px.bar(fin,x="Year",y=["Revenue_VND_bn","NPAT_VND_bn"],barmode="group",title="AUM-driven revenue and NPAT").update_layout(template="plotly_dark",height=410),use_container_width=True)
     c2.plotly_chart(px.line(fin,x="Year",y=["Fee_Yield_Pct","PBT_Margin_Pct"],markers=True,title="Fee yield and operating leverage").update_layout(template="plotly_dark",height=410,yaxis_tickformat=".1%"),use_container_width=True)
     dataframe(fin.style.format({"Market_Return_Pct":"{:.1%}","Fee_Yield_Pct":"{:.2%}","Effective_Tax_Pct":"{:.1%}","AUM_Growth_Pct":"{:.1%}","PBT_Margin_Pct":"{:.1%}"}))
 
-with tabs[8]:
+if selected_page == '05 Risk, Governance & Data Quality':
     risk=data["Risk_Indicators"].copy(); risk["Current_Score"]=pd.to_numeric(risk["Current_Score"],errors="coerce"); fig=px.bar(risk.sort_values("Current_Score"),x="Current_Score",y="Risk_Type",orientation="h",color="Current_Score",color_continuous_scale="RdYlGn_r",range_color=[0,100],title="Enterprise early-warning scores"); fig.update_layout(template="plotly_dark",height=460); st.plotly_chart(fig,use_container_width=True); dataframe(risk)
 
-with tabs[9]:
+if selected_page == '04 Financials & Scenarios':
     c1,c2,c3=st.columns(3); shock=c1.slider("VN-Index shock",-0.40,0.10,-0.20,0.05); redemption=c2.slider("Redemption",0.0,0.40,0.15,0.05); fee=c3.slider("Fee compression",0.0,0.30,0.10,0.05); s=stress_test(data,shock,redemption,fee); d=st.columns(4); d[0].metric("Stressed AUM",f"{s['AUM']/1000:,.1f} tn"); d[1].metric("Revenue",f"{s['Revenue']:,.0f} bn"); d[2].metric("PBT",f"{s['PBT']:,.0f} bn"); d[3].metric("PBT impact",f"{s['PBT_Impact']:.1%}"); st.warning("Illustrative management stress test; validate financial assumptions before formal use.")
 
-with tabs[10]:
+if selected_page == '05 Risk, Governance & Data Quality':
     own=data["Shareholders"].copy(); own["Ownership_Pct"]=pd.to_numeric(own["Ownership_Pct"],errors="coerce"); fig=px.pie(own,names="Shareholder",values="Ownership_Pct",hole=.55,title="Ownership structure"); fig.update_layout(template="plotly_dark",height=430); st.plotly_chart(fig,use_container_width=True); dataframe(data["Board_Events"])
 
-with tabs[11]:
+if selected_page == '05 Risk, Governance & Data Quality':
     q=quality_table(data); c=st.columns(4); c[0].metric("Quality score",f"{quality['score']:.0f}/100"); c[1].metric("Verified fields",f"{quality['verified_pct']:.0%}"); c[2].metric("Assumption domains",f"{quality['assumption_pct']:.0%}"); c[3].metric("Overdue domains",quality['overdue'])
     fig=px.bar(q,x="Quality_Score",y="Data_Domain",orientation="h",color="Quality_Score",range_x=[0,100],color_continuous_scale="RdYlGn",title="Data lineage and quality by domain"); fig.update_layout(template="plotly_dark",height=430); st.plotly_chart(fig,use_container_width=True); dataframe(q)
     st.markdown("### News and operating events")
@@ -209,11 +257,11 @@ with tabs[11]:
             events=events.sort_values(date_col,ascending=False,na_position="last")
         dataframe(events)
 
-with tabs[12]:
+if selected_page == '06 Advisory, Decisions & Board Pack':
     for _,r in advice.iterrows(): st.markdown(f"<div class='advisory-card'><b>{r['Priority']} · {r['Domain']}</b><br><b>Observation:</b> {r['Observation']}<br><b>Diagnosis:</b> {r['Diagnosis']}<br><b>Implication:</b> {r['Implication']}<br><b>Recommendation:</b> {r['Recommended_Action']}<br><span class='muted'>Owner: {r['Owner']}</span></div>",unsafe_allow_html=True)
     st.markdown("### Management Action Tracker"); tracker=data.get("Action_Tracker",pd.DataFrame()).copy(); dataframe(tracker.style.format({"Progress_Pct":"{:.0%}"}))
 
-with tabs[13]:
+if selected_page == '06 Advisory, Decisions & Board Pack':
     st.subheader("Board / Executive Pack")
     pdf=board_pack_pdf(ex,mm,regime,quality,advice,offtrack,actions); pptx=board_pack_pptx(ex,regime,quality,advice,offtrack,actions); pack={"as_of":str(ex["as_of"]),"executive_metrics":ex,"market_metrics":mm,"market_regime":regime,"off_track_kpis":offtrack,"open_actions":actions,"data_quality":quality,"top_recommendations":advice.head(5).to_dict(orient="records")}
     c=st.columns(4); c[0].download_button("Board Pack PDF",pdf,"DCVFM_Board_Pack_V4_4.pdf","application/pdf",use_container_width=True); c[1].download_button("Board Pack PPTX",pptx,"DCVFM_Board_Pack_V4_4.pptx","application/vnd.openxmlformats-officedocument.presentationml.presentation",use_container_width=True); c[2].download_button("Board Pack JSON",json.dumps(pack,default=str,ensure_ascii=False,indent=2),"DCVFM_Board_Pack_V4_4.json","application/json",use_container_width=True); c[3].download_button("Recommendations CSV",advice.to_csv(index=False).encode("utf-8-sig"),"DCVFM_Recommendations_V4_4.csv","text/csv",use_container_width=True)
@@ -222,7 +270,7 @@ with tabs[13]:
     if question: st.markdown(f"<div class='advisory-card'>{copilot_answer(question,data,regime)}</div>",unsafe_allow_html=True)
     st.caption("Copilot V4.4 is deterministic and grounded in the loaded Master; it does not make external factual claims.")
 
-with tabs[14]:
+if selected_page == '07 Commercial, Investor & Product Strategy':
     prof=product_profitability(data); dist=distribution_intelligence(data)
     c1,c2,c3,c4=st.columns(4)
     c1.metric("Product revenue",f"{prof['Revenue_VND_bn'].sum():,.0f} bn")
@@ -235,7 +283,7 @@ with tabs[14]:
     dataframe(prof.style.format({"Effective_Fee_Pct":"{:.2%}","Contribution_Margin_Pct":"{:.1%}"}))
     dataframe(dist.style.format({"Retention_Pct":"{:.1%}","AUM_Share_Pct":"{:.1%}","Cost_per_Net_Sales":"{:.2f}"}))
 
-with tabs[15]:
+if selected_page == '07 Commercial, Investor & Product Strategy':
     inv=investor_ews(data); compc=compliance_cockpit(data)
     a,b=st.columns(2)
     a.plotly_chart(px.bar(inv,x="Cohort",y="Risk_Score",color="Risk_Level",title="Investor redemption early-warning score").update_layout(template="plotly_dark",height=420),use_container_width=True)
@@ -244,7 +292,7 @@ with tabs[15]:
     dataframe(inv.style.format({"Underperformance_3M_Pct":"{:.1%}","Concentration_Pct":"{:.1%}"}))
     dataframe(compc)
 
-with tabs[16]:
+if selected_page == '07 Commercial, Investor & Product Strategy':
     products=product_strategy(data); kpis=business_plan_kpi(data)
     a,b=st.columns(2)
     a.plotly_chart(px.bar(products,x="Weighted_Score",y="Product_Idea",orientation="h",color="Decision",range_x=[0,10],title="Product strategy screening").update_layout(template="plotly_dark",height=430),use_container_width=True)
@@ -252,7 +300,7 @@ with tabs[16]:
     dataframe(products)
     dataframe(kpis.style.format({"Variance_Pct":"{:.1%}","Forecast_vs_Plan_Pct":"{:.1%}"}))
 
-with tabs[17]:
+if selected_page == '06 Advisory, Decisions & Board Pack':
     decisions=data["Decision_Tracker"].copy(); ds=decision_summary(data); ops=data["Operating_KPI"].copy()
     c1,c2,c3=st.columns(3); c1.metric("Open decisions",ds["open"]); c2.metric("High priority",ds["high"]); c3.metric("Average progress",f"{ds['avg_progress']:.0%}")
     a,b=st.columns(2)
@@ -263,7 +311,7 @@ with tabs[17]:
     dataframe(ops)
     dataframe(decisions.style.format({"Progress_Pct":"{:.0%}"}))
 
-with tabs[18]:
+if selected_page == '04 Financials & Scenarios':
     initial_impact=scenario_financial_impact(data)
     selected=st.selectbox("Scenario for management review",initial_impact["Scenario"].tolist(),index=1)
     preset=data["Scenarios"].loc[data["Scenarios"]["Scenario"]==selected].iloc[0]
@@ -298,10 +346,9 @@ with tabs[18]:
     fig=go.Figure(go.Waterfall(x=bridge["Driver"],y=bridge["Value"],measure=bridge["Measure"],connector={"line":{"color":"#8FA3BF"}})); fig.update_layout(template="plotly_dark",height=450,title=f"PBT bridge — {selected}",yaxis_title="VND bn"); b.plotly_chart(fig,use_container_width=True)
     st.markdown("### Linked three-statement comparison")
     comparison=three_statement_comparison(base,row)
-    statement_tabs=st.tabs(["Income Statement","Balance Sheet","Cash Flow Statement","All statements"])
-    for tab_name,tab in zip(["Income Statement","Balance Sheet","Cash Flow Statement"],statement_tabs[:3]):
-        with tab: dataframe(comparison.loc[comparison["Statement"]==tab_name].style.format({"Base_VND_bn":"{:,.1f}","Scenario_VND_bn":"{:,.1f}","Variance_VND_bn":"{:+,.1f}","Variance_Pct":"{:+.1%}"}))
-    with statement_tabs[3]: dataframe(comparison.style.format({"Base_VND_bn":"{:,.1f}","Scenario_VND_bn":"{:,.1f}","Variance_VND_bn":"{:+,.1f}","Variance_Pct":"{:+.1%}"}))
+    statement_view=st.selectbox("Statement view",["Income Statement","Balance Sheet","Cash Flow Statement","All statements"],key="statement_view")
+    statement_data=comparison if statement_view=="All statements" else comparison.loc[comparison["Statement"]==statement_view]
+    dataframe(statement_data.style.format({"Base_VND_bn":"{:,.1f}","Scenario_VND_bn":"{:,.1f}","Variance_VND_bn":"{:+,.1f}","Variance_Pct":"{:+.1%}"}))
     st.markdown("### Controls and management ratios")
     controls=st.columns(6)
     control_cards=[("Balance check",row["Balance_Check_VND_bn"]),("Cash tie",row["Cash_Tie_Check_VND_bn"]),("Retained earnings tie",row["Retained_Earnings_Check_VND_bn"]),("Current ratio",row["Current_Ratio"]),("ROA",row["ROA_Pct"]),("ROE",row["ROE_Pct"])]
@@ -313,23 +360,23 @@ with tabs[18]:
 
 
 # --- V4.4 baseline + V3.1 AI/Silver investment intelligence extension ---
-stock_raw,stock_source=load_stock_universe(); stock_scores=score_stocks(stock_raw)
-with tabs[19]:
+
+if selected_page == '08 Stock Intelligence AI':
     st.markdown("### Stock Screener AI")
     st.caption(f"Source: {stock_source}. Production target: Vnstock Silver market-screener + Fundamental/Insights. Demo rows are never presented as live recommendations.")
     c1,c2,c3=st.columns(3); min_roe=c1.number_input("Minimum ROE",0.0,1.0,.15,.01); max_pe=c2.number_input("Maximum P/E",1.0,100.0,20.0,1.0); min_liq=c3.slider("Minimum liquidity score",0,100,50)
     screened=stock_scores[(stock_scores.roe>=min_roe)&(stock_scores.pe<=max_pe)&(stock_scores.liquidity_score>=min_liq)]
     dataframe(screened)
-with tabs[20]:
+if selected_page == '08 Stock Intelligence AI':
     st.markdown("### Quant Opportunity Radar")
     threshold=st.slider("Minimum DCVFM Score",0,100,65)
     dataframe(stock_scores.loc[stock_scores.DCVFM_Score>=threshold,["symbol","sector","close","DCVFM_Score","Signal","Holding_Horizon","Fundamental","Valuation","Momentum","Money_Flow","Risk_Liquidity","Model_Upside_Pct"]])
     if "Illustrative" in stock_source: st.warning("Illustrative universe is active. Run refresh_silver_ai.py and create the Silver cache before treating signals as current-market output.")
-with tabs[21]:
+if selected_page == '08 Stock Intelligence AI':
     st.markdown("### Sell & Risk Radar")
     dataframe(stock_scores.sort_values("DCVFM_Score").head(15)[["symbol","sector","close","DCVFM_Score","Signal","Fundamental","Valuation","Momentum","Money_Flow","Risk_Liquidity"]])
     st.caption("REDUCE/SELL is a model research signal, subject to mandate, liquidity, tracking error and Investment Committee review.")
-with tabs[22]:
+if selected_page == '08 Stock Intelligence AI':
     st.markdown("### AI Stock Analyst")
     ticker=st.selectbox("Stock",stock_scores.symbol.tolist(),key="ai_stock")
     r=stock_scores.loc[stock_scores.symbol==ticker].iloc[0]
@@ -337,14 +384,14 @@ with tabs[22]:
     cols=st.columns(5)
     for col,(label,val) in zip(cols,[("Fundamental",r.Fundamental),("Valuation",r.Valuation),("Momentum",r.Momentum),("Money Flow",r.Money_Flow),("Risk/Liquidity",r.Risk_Liquidity)]): col.metric(label,f"{val:.0f}")
     st.info("AI memo contract: verified Silver data/news first → Thesis → Catalysts → Risks → Entry → Exit triggers. Missing evidence must be disclosed; AI must not invent figures.")
-with tabs[23]:
+if selected_page == '09 Portfolio & CIO AI':
     st.markdown("### AI Portfolio Constructor")
     profile_ai=st.selectbox("Portfolio profile",["Conservative","Balanced","Growth","Aggressive"],index=1,key="ai_portfolio")
     ideal,cash=construct_portfolio(stock_scores,profile_ai)
     if ideal.empty: st.warning("No securities pass the BUY threshold.")
     else: dataframe(ideal[["symbol","sector","DCVFM_Score","Signal","Holding_Horizon","Weight_Pct"]]); st.metric("Strategic cash reserve",f"{cash}%")
     st.caption("Production optimizer should additionally enforce sector/single-name caps, covariance, liquidity, turnover, benchmark tracking error and mandate constraints.")
-with tabs[24]:
+if selected_page == '09 Portfolio & CIO AI':
     st.markdown("### CIO AI Copilot")
     q=st.selectbox("Decision question",["Which stocks have the strongest 3–6 month risk-adjusted setup?","Why is the top BUY stronger than the first HOLD?","How should the portfolio change if VN-Index falls 10%?","Which positions should be reduced first if liquidity deteriorates?","Summarize market regime, sector rotation and recommended actions."])
     st.code(q,language="text")

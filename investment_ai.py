@@ -48,3 +48,12 @@ def construct_portfolio(scored, profile="Balanced"):
     if w.sum()>0:w=w/w.sum()*(100-cash)
     q["Weight_Pct"]=w.round(1)
     return q,cash
+
+def load_silver_flow():
+    p=CACHE/'silver_flow_snapshot.csv'
+    if not p.exists(): return pd.DataFrame(), 'No Silver flow cache'
+    try:
+        d=pd.read_csv(p)
+        return d, 'Vnstock Silver flow cache'
+    except Exception as exc:
+        return pd.DataFrame(), f'Flow cache error: {type(exc).__name__}'
