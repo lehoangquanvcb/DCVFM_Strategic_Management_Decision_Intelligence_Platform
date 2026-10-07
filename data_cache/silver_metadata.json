@@ -1,0 +1,9 @@
+{
+  "source": "VNSTOCK_SILVER",
+  "refresh_timestamp": "2026-10-07T16:17:42+07:00",
+  "stock_rows": 120,
+  "flow_rows": 390,
+  "full_factor_ready": true,
+  "score_version": "DCVFM-V3.3",
+  "note": "Sanitized local Silver cache; public cloud performs no Sponsor authentication."
+}

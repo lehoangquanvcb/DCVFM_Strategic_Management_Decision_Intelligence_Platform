@@ -30,7 +30,7 @@ def score_stocks(df):
     f=(_rank(d.roe)+_rank(d.revenue_growth)+_rank(d.profit_growth))/3
     v=(_rank(d.pe,False)+_rank(d.pb,False))/2
     m=(_rank(d.ret_20d)+_rank(d.ret_60d))/2
-    flow=pd.to_numeric(d.foreign_flow_score,errors="coerce").fillna(50).clip(0,100)
+    flow=pd.to_numeric(d["money_flow_score"] if "money_flow_score" in d else d.foreign_flow_score,errors="coerce").fillna(50).clip(0,100)
     risk=(_rank(d.volatility,False)+pd.to_numeric(d.liquidity_score,errors="coerce").fillna(50))/2
     d["Fundamental"]=f.round(1); d["Valuation"]=v.round(1); d["Momentum"]=m.round(1); d["Money_Flow"]=flow.round(1); d["Risk_Liquidity"]=risk.round(1)
     d["DCVFM_Score"]=(.30*f+.20*v+.25*m+.15*flow+.10*risk).round(1)
