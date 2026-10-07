@@ -86,9 +86,11 @@ def _fallback(symbol: str,start: str,end: str,base: float) -> pd.DataFrame:
     return pd.DataFrame({"date":dates,"open":open_,"high":high,"low":low,"close":close,"volume":volume})
 
 
-def get_market_data(symbol="VNINDEX",start="2025-01-01",end=None,source="KBS",fallback=True,base=1265.0):
+def get_market_data(symbol="VNINDEX",start="2025-01-01",end=None,source="KBS",fallback=True,base=1265.0,allow_live=True):
     end=end or date.today().isoformat(); start=str(start)[:10]; end=str(end)[:10]
     try:
+        if not allow_live:
+            raise RuntimeError("Live market calls disabled in cloud-safe runtime")
         frame,label=_vnstock(symbol,start,end,source)
         if len(frame)<5: raise ValueError("Insufficient observations")
         _save_cache(symbol,frame)

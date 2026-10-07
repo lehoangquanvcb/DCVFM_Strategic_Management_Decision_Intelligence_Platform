@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import importlib.util
+import os
+import time
 from datetime import date
 import pandas as pd
 import plotly.express as px
@@ -21,12 +24,16 @@ from vnstock_auth import configure_vnstock_auth, resolve_api_key
 from investment_ai import load_stock_universe, score_stocks, construct_portfolio, load_silver_flow
 
 st.set_page_config(page_title=APP_NAME, page_icon="📊", layout="wide", initial_sidebar_state="expanded")
+START_TS=time.time()
+HAS_VNSTOCK=bool(importlib.util.find_spec("vnstock_data") or importlib.util.find_spec("vnstock"))
+CLOUD_SAFE=not HAS_VNSTOCK
+print(f"[DCVFM V3.2.1] startup | vnstock_available={HAS_VNSTOCK} | cloud_safe={CLOUD_SAFE}", flush=True)
 inject_css()
 
 @st.cache_data(show_spinner=False)
 def cached_master(source): return load_master(source)
 @st.cache_data(ttl=3600, show_spinner=False)
-def cached_market(symbol,start,end,source,fallback,base): return get_market_data(symbol,start,end,source,fallback,base)
+def cached_market(symbol,start,end,source,fallback,base,allow_live): return get_market_data(symbol,start,end,source,fallback,base,allow_live=allow_live)
 @st.cache_resource(show_spinner=False)
 def cached_auth(api_key): return configure_vnstock_auth(api_key)
 
@@ -50,13 +57,15 @@ with st.sidebar:
     selected_page=st.radio("Navigation",NAV_PAGES,index=0,key="main_vertical_nav")
 
 source=uploaded.getvalue() if uploaded else str(DEFAULT_MASTER)
+print("[DCVFM V3.2.1] loading Master Excel", flush=True)
 try: data=cached_master(source)
 except Exception as exc: st.error(f"Unable to load Master Excel: {exc}"); st.stop()
 issues=validate_master(data)
 if issues: st.warning("Data quality issues: "+" | ".join(issues))
 profile=company_profile(data); cfg=config_map(data); funds=data["Fund_Master"]["Fund_Code"].dropna().astype(str).tolist()
-api_key=resolve_api_key(st.secrets)
-auth_state=cached_auth(api_key)
+print("[DCVFM V3.2.1] Master Excel loaded", flush=True)
+api_key=resolve_api_key(st.secrets) if HAS_VNSTOCK else None
+auth_state=cached_auth(api_key) if HAS_VNSTOCK else {"available":False,"authenticated":False,"tier":"Cloud-safe","membership":None,"reported_plan":None,"limit":None,"message":"Sponsor runtime intentionally disabled on Streamlit Cloud"}
 with st.sidebar:
     selected_fund=st.selectbox("Fund / strategy",funds,index=0)
     symbol=st.text_input("Market index",str(cfg.get("Index_Symbol","VNINDEX")))
@@ -75,15 +84,17 @@ with st.sidebar:
     elif auth_state["available"]:
         st.warning("Vnstock installed but no authenticated identity detected")
     else:
-        st.error("Vnstock authentication module unavailable")
+        st.info("Cloud-safe mode: Vnstock Sponsor calls are disabled here; the app reads sanitized local Silver caches.")
     st.caption("API key is never displayed, logged or stored in the Master Excel.")
     st.caption(f"Master {profile.get('Model_Version',APP_VERSION)} • {profile.get('Platform_As_of','')}")
 
-market,market_source,market_error=cached_market(symbol,start.isoformat(),date.today().isoformat(),str(cfg.get("Preferred_Source","VCI")),fallback,float(cfg.get("Offline_Base_Index",1265)))
+print(f"[DCVFM V3.2.1] market layer | live={HAS_VNSTOCK}", flush=True)
+market,market_source,market_error=cached_market(symbol,start.isoformat(),date.today().isoformat(),str(cfg.get("Preferred_Source","VCI")),fallback,float(cfg.get("Offline_Base_Index",1265)),HAS_VNSTOCK)
 mm=market_metrics(market); regime=market_regime(mm); ex=executive_metrics(data); quality=quality_summary(data); actions=action_summary(data); advice=generate_advisories(data,regime); plan_kpis=business_plan_kpi(data); offtrack=int((plan_kpis["Status"]=="OFF TRACK").sum())
 header(APP_VERSION,AUTHOR)
 stock_raw,stock_source=load_stock_universe(); stock_scores=score_stocks(stock_raw)
 silver_flow,silver_flow_source=load_silver_flow()
+print(f"[DCVFM V3.2.1] render ready in {time.time()-START_TS:.2f}s | stock_source={stock_source} | flow_source={silver_flow_source}", flush=True)
 if market_error:
     if market_source == "Vnstock Cache":
         st.info("Live Vnstock request failed; the platform is using the last successful authenticated market cache.")
