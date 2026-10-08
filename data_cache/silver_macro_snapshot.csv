@@ -1,153 +1,152 @@
 ﻿index,time,center_rate,vcb_rate,market_rate,vnindex,indicator_group,report_time,group_name,name,value,unit,source
-0.0,2026-07-09 00:00:00,25211.0,26471.0,26420.0,1840.7,FX,,,,,,
-1.0,2026-07-10 00:00:00,25214.0,26474.0,26450.0,1828.34,FX,,,,,,
-2.0,2026-07-13 00:00:00,25220.0,26460.0,26450.0,1800.54,FX,,,,,,
-3.0,2026-07-14 00:00:00,25225.0,26450.0,26450.0,1806.63,FX,,,,,,
-4.0,2026-07-15 00:00:00,25233.0,26450.0,26420.0,1782.12,FX,,,,,,
-5.0,2026-07-16 00:00:00,25243.0,26450.0,26420.0,1804.24,FX,,,,,,
-6.0,2026-07-17 00:00:00,25254.0,26440.0,26410.0,1787.45,FX,,,,,,
-7.0,2026-07-20 00:00:00,25252.0,26490.0,26550.0,1743.51,FX,,,,,,
-8.0,2026-07-21 00:00:00,25260.0,26490.0,26330.0,1730.56,FX,,,,,,
-9.0,2026-07-22 00:00:00,25260.0,26520.0,26380.0,1668.53,FX,,,,,,
-10.0,2026-07-23 00:00:00,25272.0,26500.0,26380.0,1699.38,FX,,,,,,
-11.0,2026-07-24 00:00:00,,26510.0,26360.0,1686.11,FX,,,,,,
-12.0,2026-07-27 00:00:00,,26520.0,26420.0,1669.01,FX,,,,,,
-13.0,2026-07-28 00:00:00,,26525.0,26420.0,1680.62,FX,,,,,,
-14.0,2026-07-29 00:00:00,25306.0,26530.0,26320.0,1704.68,FX,,,,,,
-15.0,2026-07-30 00:00:00,25320.0,26520.0,26320.0,1744.66,FX,,,,,,
-16.0,2026-07-31 00:00:00,25338.0,26470.0,26280.0,1735.78,FX,,,,,,
-17.0,2026-08-03 00:00:00,,26480.0,26280.0,1762.84,FX,,,,,,
-18.0,2026-08-04 00:00:00,,26480.0,26110.0,1777.23,FX,,,,,,
-19.0,2026-08-05 00:00:00,,26460.0,26110.0,1776.46,FX,,,,,,
-20.0,2026-08-06 00:00:00,25433.0,26450.0,26110.0,1764.78,FX,,,,,,
-21.0,2026-08-07 00:00:00,25463.0,26430.0,26100.0,1768.06,FX,,,,,,
-22.0,2026-08-10 00:00:00,,26320.0,25830.0,1776.77,FX,,,,,,
-23.0,2026-08-11 00:00:00,,26320.0,25710.0,1773.41,FX,,,,,,
-24.0,2026-08-12 00:00:00,,26330.0,25800.0,1793.18,FX,,,,,,
-25.0,2026-08-13 00:00:00,,26250.0,25990.0,1765.63,FX,,,,,,
-26.0,2026-08-14 00:00:00,,26270.0,25990.0,1729.08,FX,,,,,,
-27.0,2026-08-17 00:00:00,25586.0,26400.0,25950.0,1727.46,FX,,,,,,
-28.0,2026-08-18 00:00:00,25580.0,26380.0,25800.0,1732.02,FX,,,,,,
-29.0,2026-08-19 00:00:00,25598.0,26370.0,25800.0,1726.69,FX,,,,,,
-30.0,2026-08-20 00:00:00,25590.0,26340.0,25900.0,1734.24,FX,,,,,,
-31.0,2026-08-21 00:00:00,25600.0,26280.0,25910.0,1768.12,FX,,,,,,
-32.0,2026-08-24 00:00:00,,26330.0,25970.0,1788.78,FX,,,,,,
-33.0,2026-08-25 00:00:00,,26330.0,25970.0,1791.41,FX,,,,,,
-34.0,2026-08-26 00:00:00,25611.0,26300.0,25860.0,1821.32,FX,,,,,,
-35.0,2026-08-27 00:00:00,25611.0,26290.0,25890.0,1831.56,FX,,,,,,
-36.0,2026-08-28 00:00:00,,26270.0,25890.0,1832.12,FX,,,,,,
-37.0,2026-09-03 00:00:00,25615.0,26270.0,25870.0,1827.72,FX,,,,,,
-38.0,2026-09-04 00:00:00,,26285.0,25810.0,1853.08,FX,,,,,,
-39.0,2026-09-07 00:00:00,25611.0,26250.0,25810.0,1821.64,FX,,,,,,
-40.0,2026-09-08 00:00:00,25603.0,26150.0,25780.0,1830.44,FX,,,,,,
-41.0,2026-09-09 00:00:00,25594.0,26160.0,25760.0,1827.12,FX,,,,,,
-42.0,2026-09-10 00:00:00,25591.0,26100.0,25760.0,1829.23,FX,,,,,,
-43.0,2026-09-11 00:00:00,25596.0,26120.0,25760.0,1795.21,FX,,,,,,
-44.0,2026-09-14 00:00:00,25607.0,26130.0,25810.0,1788.23,FX,,,,,,
-45.0,2026-09-15 00:00:00,25617.0,26200.0,25770.0,1811.15,FX,,,,,,
-46.0,2026-09-16 00:00:00,,26180.0,25770.0,1810.11,FX,,,,,,
-47.0,2026-09-17 00:00:00,25632.0,26205.0,25820.0,1822.77,FX,,,,,,
-48.0,2026-09-18 00:00:00,25637.0,26200.0,25880.0,1815.66,FX,,,,,,
-49.0,2026-09-21 00:00:00,,26200.0,26000.0,1799.67,FX,,,,,,
-50.0,2026-09-22 00:00:00,,26210.0,25920.0,1816.93,FX,,,,,,
-51.0,2026-09-23 00:00:00,,26180.0,25850.0,1801.65,FX,,,,,,
-52.0,2026-09-24 00:00:00,25635.0,26200.0,25850.0,1775.09,FX,,,,,,
-53.0,2026-09-25 00:00:00,25641.0,26180.0,25930.0,1785.11,FX,,,,,,
-54.0,2026-09-28 00:00:00,,26150.0,25950.0,1780.68,FX,,,,,,
-55.0,2026-09-29 00:00:00,,26170.0,25950.0,1777.73,FX,,,,,,
-56.0,2026-09-30 00:00:00,,26160.0,25950.0,1768.62,FX,,,,,,
-57.0,2026-10-01 00:00:00,25624.0,26160.0,26100.0,1749.3,FX,,,,,,
-58.0,2026-10-02 00:00:00,25636.0,26190.0,25960.0,1737.71,FX,,,,,,
-59.0,2026-10-05 00:00:00,25643.0,26170.0,26030.0,1753.2,FX,,,,,,
-60.0,2026-10-06 00:00:00,,26190.0,26030.0,1759.08,FX,,,,,,
-61.0,2026-10-07 00:00:00,,26170.0,26140.0,1753.39,FX,,,,,,
-,2026-09-27,,,,,Interest Rate,2026-09-28,Lãi suất bình quân liên ngân hàng (%/năm),Qua đêm,0.48,%,Ngân hàng Nhà nước Việt Nam
-,2026-09-27,,,,,Interest Rate,2026-09-28,Lãi suất bình quân liên ngân hàng (%/năm), 12 tháng  ,,%,Ngân hàng Nhà nước Việt Nam
+0.0,2026-07-10 00:00:00,25214.0,26474.0,26450.0,1828.34,FX,,,,,,
+1.0,2026-07-13 00:00:00,25220.0,26460.0,26450.0,1800.54,FX,,,,,,
+2.0,2026-07-14 00:00:00,25225.0,26450.0,26450.0,1806.63,FX,,,,,,
+3.0,2026-07-15 00:00:00,25233.0,26450.0,26420.0,1782.12,FX,,,,,,
+4.0,2026-07-16 00:00:00,25243.0,26450.0,26420.0,1804.24,FX,,,,,,
+5.0,2026-07-17 00:00:00,25254.0,26440.0,26410.0,1787.45,FX,,,,,,
+6.0,2026-07-20 00:00:00,25252.0,26490.0,26550.0,1743.51,FX,,,,,,
+7.0,2026-07-21 00:00:00,25260.0,26490.0,26330.0,1730.56,FX,,,,,,
+8.0,2026-07-22 00:00:00,25260.0,26520.0,26380.0,1668.53,FX,,,,,,
+9.0,2026-07-23 00:00:00,25272.0,26500.0,26380.0,1699.38,FX,,,,,,
+10.0,2026-07-24 00:00:00,,26510.0,26360.0,1686.11,FX,,,,,,
+11.0,2026-07-27 00:00:00,,26520.0,26420.0,1669.01,FX,,,,,,
+12.0,2026-07-28 00:00:00,,26525.0,26420.0,1680.62,FX,,,,,,
+13.0,2026-07-29 00:00:00,25306.0,26530.0,26320.0,1704.68,FX,,,,,,
+14.0,2026-07-30 00:00:00,25320.0,26520.0,26320.0,1744.66,FX,,,,,,
+15.0,2026-07-31 00:00:00,25338.0,26470.0,26280.0,1735.78,FX,,,,,,
+16.0,2026-08-03 00:00:00,,26480.0,26280.0,1762.84,FX,,,,,,
+17.0,2026-08-04 00:00:00,,26480.0,26110.0,1777.23,FX,,,,,,
+18.0,2026-08-05 00:00:00,,26460.0,26110.0,1776.46,FX,,,,,,
+19.0,2026-08-06 00:00:00,25433.0,26450.0,26110.0,1764.78,FX,,,,,,
+20.0,2026-08-07 00:00:00,25463.0,26430.0,26100.0,1768.06,FX,,,,,,
+21.0,2026-08-10 00:00:00,,26320.0,25830.0,1776.77,FX,,,,,,
+22.0,2026-08-11 00:00:00,,26320.0,25710.0,1773.41,FX,,,,,,
+23.0,2026-08-12 00:00:00,,26330.0,25800.0,1793.18,FX,,,,,,
+24.0,2026-08-13 00:00:00,,26250.0,25990.0,1765.63,FX,,,,,,
+25.0,2026-08-14 00:00:00,,26270.0,25990.0,1729.08,FX,,,,,,
+26.0,2026-08-17 00:00:00,25586.0,26400.0,25950.0,1727.46,FX,,,,,,
+27.0,2026-08-18 00:00:00,25580.0,26380.0,25800.0,1732.02,FX,,,,,,
+28.0,2026-08-19 00:00:00,25598.0,26370.0,25800.0,1726.69,FX,,,,,,
+29.0,2026-08-20 00:00:00,25590.0,26340.0,25900.0,1734.24,FX,,,,,,
+30.0,2026-08-21 00:00:00,25600.0,26280.0,25910.0,1768.12,FX,,,,,,
+31.0,2026-08-24 00:00:00,,26330.0,25970.0,1788.78,FX,,,,,,
+32.0,2026-08-25 00:00:00,,26330.0,25970.0,1791.41,FX,,,,,,
+33.0,2026-08-26 00:00:00,25611.0,26300.0,25860.0,1821.32,FX,,,,,,
+34.0,2026-08-27 00:00:00,25611.0,26290.0,25890.0,1831.56,FX,,,,,,
+35.0,2026-08-28 00:00:00,,26270.0,25890.0,1832.12,FX,,,,,,
+36.0,2026-09-03 00:00:00,25615.0,26270.0,25870.0,1827.72,FX,,,,,,
+37.0,2026-09-04 00:00:00,,26285.0,25810.0,1853.08,FX,,,,,,
+38.0,2026-09-07 00:00:00,25611.0,26250.0,25810.0,1821.64,FX,,,,,,
+39.0,2026-09-08 00:00:00,25603.0,26150.0,25780.0,1830.44,FX,,,,,,
+40.0,2026-09-09 00:00:00,25594.0,26160.0,25760.0,1827.12,FX,,,,,,
+41.0,2026-09-10 00:00:00,25591.0,26100.0,25760.0,1829.23,FX,,,,,,
+42.0,2026-09-11 00:00:00,25596.0,26120.0,25760.0,1795.21,FX,,,,,,
+43.0,2026-09-14 00:00:00,25607.0,26130.0,25810.0,1788.23,FX,,,,,,
+44.0,2026-09-15 00:00:00,25617.0,26200.0,25770.0,1811.15,FX,,,,,,
+45.0,2026-09-16 00:00:00,,26180.0,25770.0,1810.11,FX,,,,,,
+46.0,2026-09-17 00:00:00,25632.0,26205.0,25820.0,1822.77,FX,,,,,,
+47.0,2026-09-18 00:00:00,25637.0,26200.0,25880.0,1815.66,FX,,,,,,
+48.0,2026-09-21 00:00:00,,26200.0,26000.0,1799.67,FX,,,,,,
+49.0,2026-09-22 00:00:00,,26210.0,25920.0,1816.93,FX,,,,,,
+50.0,2026-09-23 00:00:00,,26180.0,25850.0,1801.65,FX,,,,,,
+51.0,2026-09-24 00:00:00,25635.0,26200.0,25850.0,1775.09,FX,,,,,,
+52.0,2026-09-25 00:00:00,25641.0,26180.0,25930.0,1785.11,FX,,,,,,
+53.0,2026-09-28 00:00:00,,26150.0,25950.0,1780.68,FX,,,,,,
+54.0,2026-09-29 00:00:00,,26170.0,25950.0,1777.73,FX,,,,,,
+55.0,2026-09-30 00:00:00,,26160.0,25950.0,1768.62,FX,,,,,,
+56.0,2026-10-01 00:00:00,25624.0,26160.0,26100.0,1749.3,FX,,,,,,
+57.0,2026-10-02 00:00:00,25636.0,26190.0,25960.0,1737.71,FX,,,,,,
+58.0,2026-10-05 00:00:00,25643.0,26170.0,26030.0,1753.2,FX,,,,,,
+59.0,2026-10-06 00:00:00,,26190.0,26030.0,1759.08,FX,,,,,,
+60.0,2026-10-07 00:00:00,,26170.0,26140.0,1753.39,FX,,,,,,
 ,2026-09-27,,,,,Interest Rate,2026-09-28,Doanh số,9 tháng,704.0,Tỷ VNĐ,
 ,2026-09-27,,,,,Interest Rate,2026-09-28,Doanh số, 6 tháng  ,596.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-09-27,,,,,Interest Rate,2026-09-28,Doanh số, 3 tháng  ,1359.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-09-27,,,,,Interest Rate,2026-09-28,Doanh số, 1 tháng ,3346.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-09-27,,,,,Interest Rate,2026-09-28,Doanh số, 2 tuần ,4652.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
-,2026-09-27,,,,,Interest Rate,2026-09-28,Doanh số,Qua đêm,793131.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-09-27,,,,,Interest Rate,2026-09-28,Doanh số, 1 tuần ,64630.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
+,2026-09-27,,,,,Interest Rate,2026-09-28,Doanh số,Qua đêm,793131.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-09-27,,,,,Interest Rate,2026-09-28,Doanh số, 12 tháng  ,,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
+,2026-09-27,,,,,Interest Rate,2026-09-28,Lãi suất bình quân liên ngân hàng (%/năm), 12 tháng  ,,%,Ngân hàng Nhà nước Việt Nam
+,2026-09-27,,,,,Interest Rate,2026-09-28,Lãi suất bình quân liên ngân hàng (%/năm), 2 tuần ,6.18,%,Ngân hàng Nhà nước Việt Nam
+,2026-07-28,,,,,Interest Rate,2026-07-29,Doanh số, 12 tháng  ,,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-07-28,,,,,Interest Rate,2026-07-29,Doanh số,Qua đêm,822953.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-07-28,,,,,Interest Rate,2026-07-29,Doanh số, 1 tuần ,43217.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-07-28,,,,,Interest Rate,2026-07-29,Doanh số, 2 tuần ,7370.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-07-28,,,,,Interest Rate,2026-07-29,Doanh số, 1 tháng ,8650.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-07-28,,,,,Interest Rate,2026-07-29,Doanh số, 3 tháng  ,2015.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
-,2026-07-28,,,,,Interest Rate,2026-07-29,Doanh số,9 tháng,230.0,Tỷ VNĐ,
-,2026-07-28,,,,,Interest Rate,2026-07-29,Doanh số, 12 tháng  ,,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
-,2026-07-28,,,,,Interest Rate,2026-07-29,Lãi suất bình quân liên ngân hàng (%/năm),Qua đêm,1.33,%,Ngân hàng Nhà nước Việt Nam
 ,2026-07-28,,,,,Interest Rate,2026-07-29,Doanh số, 6 tháng  ,23.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
+,2026-07-28,,,,,Interest Rate,2026-07-29,Doanh số,9 tháng,230.0,Tỷ VNĐ,
+,2026-07-28,,,,,Interest Rate,2026-07-29,Lãi suất bình quân liên ngân hàng (%/năm), 12 tháng  ,,%,Ngân hàng Nhà nước Việt Nam
+,2026-07-28,,,,,Interest Rate,2026-07-29,Lãi suất bình quân liên ngân hàng (%/năm),Qua đêm,1.33,%,Ngân hàng Nhà nước Việt Nam
+,2026-07-28,,,,,Interest Rate,2026-07-29,Lãi suất bình quân liên ngân hàng (%/năm), 1 tuần ,4.55,%,Ngân hàng Nhà nước Việt Nam
 ,2026-07-28,,,,,Interest Rate,2026-07-29,Lãi suất bình quân liên ngân hàng (%/năm), 2 tuần ,5.61,%,Ngân hàng Nhà nước Việt Nam
 ,2026-07-28,,,,,Interest Rate,2026-07-29,Lãi suất bình quân liên ngân hàng (%/năm), 1 tháng ,6.76,%,Ngân hàng Nhà nước Việt Nam
 ,2026-07-28,,,,,Interest Rate,2026-07-29,Lãi suất bình quân liên ngân hàng (%/năm), 3 tháng  ,7.31,%,Ngân hàng Nhà nước Việt Nam
 ,2026-07-28,,,,,Interest Rate,2026-07-29,Lãi suất bình quân liên ngân hàng (%/năm), 6 tháng  ,7.3,%,Ngân hàng Nhà nước Việt Nam
 ,2026-07-28,,,,,Interest Rate,2026-07-29,Lãi suất bình quân liên ngân hàng (%/năm),9 tháng,9.26,%,
-,2026-07-28,,,,,Interest Rate,2026-07-29,Lãi suất bình quân liên ngân hàng (%/năm), 12 tháng  ,,%,Ngân hàng Nhà nước Việt Nam
-,2026-07-28,,,,,Interest Rate,2026-07-29,Lãi suất bình quân liên ngân hàng (%/năm), 1 tuần ,4.55,%,Ngân hàng Nhà nước Việt Nam
-,2026-09-28,,,,,Interest Rate,2026-09-29,Doanh số, 12 tháng  ,,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
-,2026-09-28,,,,,Interest Rate,2026-09-29,Lãi suất bình quân liên ngân hàng (%/năm),Qua đêm,0.56,%,Ngân hàng Nhà nước Việt Nam
-,2026-09-28,,,,,Interest Rate,2026-09-29,Lãi suất bình quân liên ngân hàng (%/năm), 1 tuần ,6.23,%,Ngân hàng Nhà nước Việt Nam
-,2026-09-28,,,,,Interest Rate,2026-09-29,Lãi suất bình quân liên ngân hàng (%/năm), 2 tuần ,5.87,%,Ngân hàng Nhà nước Việt Nam
-,2026-09-28,,,,,Interest Rate,2026-09-29,Lãi suất bình quân liên ngân hàng (%/năm), 1 tháng ,6.7,%,Ngân hàng Nhà nước Việt Nam
-,2026-09-28,,,,,Interest Rate,2026-09-29,Lãi suất bình quân liên ngân hàng (%/năm), 3 tháng  ,6.9,%,Ngân hàng Nhà nước Việt Nam
-,2026-09-28,,,,,Interest Rate,2026-09-29,Lãi suất bình quân liên ngân hàng (%/năm), 6 tháng  ,7.48,%,Ngân hàng Nhà nước Việt Nam
-,2026-09-28,,,,,Interest Rate,2026-09-29,Doanh số, 3 tháng  ,1927.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
-,2026-09-28,,,,,Interest Rate,2026-09-29,Lãi suất bình quân liên ngân hàng (%/năm), 12 tháng  ,,%,Ngân hàng Nhà nước Việt Nam
-,2026-09-28,,,,,Interest Rate,2026-09-29,Doanh số, 1 tháng ,1115.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
-,2026-09-28,,,,,Interest Rate,2026-09-29,Doanh số, 2 tuần ,2210.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-09-28,,,,,Interest Rate,2026-09-29,Doanh số, 1 tuần ,43921.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
-,2026-09-28,,,,,Interest Rate,2026-09-29,Doanh số,9 tháng,704.0,Tỷ VNĐ,
+,2026-09-28,,,,,Interest Rate,2026-09-29,Doanh số, 2 tuần ,2210.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
+,2026-09-28,,,,,Interest Rate,2026-09-29,Lãi suất bình quân liên ngân hàng (%/năm), 1 tuần ,6.23,%,Ngân hàng Nhà nước Việt Nam
+,2026-09-28,,,,,Interest Rate,2026-09-29,Doanh số, 3 tháng  ,1927.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-09-28,,,,,Interest Rate,2026-09-29,Doanh số,Qua đêm,827403.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
+,2026-09-28,,,,,Interest Rate,2026-09-29,Doanh số, 1 tháng ,1115.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-09-28,,,,,Interest Rate,2026-09-29,Lãi suất bình quân liên ngân hàng (%/năm),9 tháng,8.0,%,
+,2026-09-28,,,,,Interest Rate,2026-09-29,Lãi suất bình quân liên ngân hàng (%/năm), 6 tháng  ,7.48,%,Ngân hàng Nhà nước Việt Nam
+,2026-09-28,,,,,Interest Rate,2026-09-29,Lãi suất bình quân liên ngân hàng (%/năm), 3 tháng  ,6.9,%,Ngân hàng Nhà nước Việt Nam
+,2026-09-28,,,,,Interest Rate,2026-09-29,Lãi suất bình quân liên ngân hàng (%/năm), 12 tháng  ,,%,Ngân hàng Nhà nước Việt Nam
+,2026-09-28,,,,,Interest Rate,2026-09-29,Lãi suất bình quân liên ngân hàng (%/năm), 2 tuần ,5.87,%,Ngân hàng Nhà nước Việt Nam
+,2026-09-28,,,,,Interest Rate,2026-09-29,Lãi suất bình quân liên ngân hàng (%/năm),Qua đêm,0.56,%,Ngân hàng Nhà nước Việt Nam
+,2026-09-28,,,,,Interest Rate,2026-09-29,Doanh số, 12 tháng  ,,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
+,2026-09-28,,,,,Interest Rate,2026-09-29,Doanh số,9 tháng,704.0,Tỷ VNĐ,
+,2026-09-28,,,,,Interest Rate,2026-09-29,Lãi suất bình quân liên ngân hàng (%/năm), 1 tháng ,6.7,%,Ngân hàng Nhà nước Việt Nam
 ,2026-09-28,,,,,Interest Rate,2026-09-29,Doanh số, 6 tháng  ,364.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
-,2026-07-29,,,,,Interest Rate,2026-07-30,Lãi suất bình quân liên ngân hàng (%/năm), 6 tháng  ,7.22,%,Ngân hàng Nhà nước Việt Nam
-,2026-07-29,,,,,Interest Rate,2026-07-30,Doanh số, 12 tháng  ,,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
+,2026-07-29,,,,,Interest Rate,2026-07-30,Doanh số,9 tháng,230.0,Tỷ VNĐ,
+,2026-07-29,,,,,Interest Rate,2026-07-30,Doanh số,Qua đêm,854800.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
+,2026-07-29,,,,,Interest Rate,2026-07-30,Doanh số, 1 tuần ,38800.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
+,2026-07-29,,,,,Interest Rate,2026-07-30,Doanh số, 2 tuần ,8090.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
+,2026-07-29,,,,,Interest Rate,2026-07-30,Doanh số, 1 tháng ,2050.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-07-29,,,,,Interest Rate,2026-07-30,Doanh số, 3 tháng  ,2616.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-07-29,,,,,Interest Rate,2026-07-30,Doanh số, 6 tháng  ,193.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
-,2026-07-29,,,,,Interest Rate,2026-07-30,Doanh số,9 tháng,230.0,Tỷ VNĐ,
-,2026-07-29,,,,,Interest Rate,2026-07-30,Doanh số, 1 tuần ,38800.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-07-29,,,,,Interest Rate,2026-07-30,Lãi suất bình quân liên ngân hàng (%/năm),Qua đêm,0.75,%,Ngân hàng Nhà nước Việt Nam
 ,2026-07-29,,,,,Interest Rate,2026-07-30,Lãi suất bình quân liên ngân hàng (%/năm), 1 tuần ,4.49,%,Ngân hàng Nhà nước Việt Nam
-,2026-07-29,,,,,Interest Rate,2026-07-30,Lãi suất bình quân liên ngân hàng (%/năm), 2 tuần ,5.8,%,Ngân hàng Nhà nước Việt Nam
-,2026-07-29,,,,,Interest Rate,2026-07-30,Lãi suất bình quân liên ngân hàng (%/năm), 1 tháng ,6.4,%,Ngân hàng Nhà nước Việt Nam
-,2026-07-29,,,,,Interest Rate,2026-07-30,Lãi suất bình quân liên ngân hàng (%/năm), 3 tháng  ,7.34,%,Ngân hàng Nhà nước Việt Nam
-,2026-07-29,,,,,Interest Rate,2026-07-30,Lãi suất bình quân liên ngân hàng (%/năm),9 tháng,9.26,%,
 ,2026-07-29,,,,,Interest Rate,2026-07-30,Lãi suất bình quân liên ngân hàng (%/năm), 12 tháng  ,,%,Ngân hàng Nhà nước Việt Nam
-,2026-07-29,,,,,Interest Rate,2026-07-30,Doanh số,Qua đêm,854800.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
-,2026-07-29,,,,,Interest Rate,2026-07-30,Doanh số, 1 tháng ,2050.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
-,2026-07-29,,,,,Interest Rate,2026-07-30,Doanh số, 2 tuần ,8090.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
-,2026-09-29,,,,,Interest Rate,2026-09-30,Doanh số, 3 tháng  ,1190.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
-,2026-09-29,,,,,Interest Rate,2026-09-30,Doanh số, 6 tháng  ,2199.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
-,2026-09-29,,,,,Interest Rate,2026-09-30,Doanh số,9 tháng,241.0,Tỷ VNĐ,
-,2026-09-29,,,,,Interest Rate,2026-09-30,Doanh số, 12 tháng  ,,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
-,2026-09-29,,,,,Interest Rate,2026-09-30,Lãi suất bình quân liên ngân hàng (%/năm),Qua đêm,6.95,%,Ngân hàng Nhà nước Việt Nam
-,2026-09-29,,,,,Interest Rate,2026-09-30,Lãi suất bình quân liên ngân hàng (%/năm), 1 tuần ,6.88,%,Ngân hàng Nhà nước Việt Nam
-,2026-09-29,,,,,Interest Rate,2026-09-30,Lãi suất bình quân liên ngân hàng (%/năm), 2 tuần ,6.26,%,Ngân hàng Nhà nước Việt Nam
-,2026-09-29,,,,,Interest Rate,2026-09-30,Lãi suất bình quân liên ngân hàng (%/năm), 1 tháng ,6.37,%,Ngân hàng Nhà nước Việt Nam
-,2026-09-29,,,,,Interest Rate,2026-09-30,Lãi suất bình quân liên ngân hàng (%/năm), 3 tháng  ,6.63,%,Ngân hàng Nhà nước Việt Nam
-,2026-09-29,,,,,Interest Rate,2026-09-30,Lãi suất bình quân liên ngân hàng (%/năm), 6 tháng  ,7.54,%,Ngân hàng Nhà nước Việt Nam
-,2026-09-29,,,,,Interest Rate,2026-09-30,Lãi suất bình quân liên ngân hàng (%/năm),9 tháng,8.55,%,
+,2026-07-29,,,,,Interest Rate,2026-07-30,Lãi suất bình quân liên ngân hàng (%/năm),9 tháng,9.26,%,
+,2026-07-29,,,,,Interest Rate,2026-07-30,Lãi suất bình quân liên ngân hàng (%/năm), 6 tháng  ,7.22,%,Ngân hàng Nhà nước Việt Nam
+,2026-07-29,,,,,Interest Rate,2026-07-30,Doanh số, 12 tháng  ,,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
+,2026-07-29,,,,,Interest Rate,2026-07-30,Lãi suất bình quân liên ngân hàng (%/năm), 1 tháng ,6.4,%,Ngân hàng Nhà nước Việt Nam
+,2026-07-29,,,,,Interest Rate,2026-07-30,Lãi suất bình quân liên ngân hàng (%/năm), 2 tuần ,5.8,%,Ngân hàng Nhà nước Việt Nam
+,2026-07-29,,,,,Interest Rate,2026-07-30,Lãi suất bình quân liên ngân hàng (%/năm), 3 tháng  ,7.34,%,Ngân hàng Nhà nước Việt Nam
 ,2026-09-29,,,,,Interest Rate,2026-09-30,Lãi suất bình quân liên ngân hàng (%/năm), 12 tháng  ,,%,Ngân hàng Nhà nước Việt Nam
+,2026-09-29,,,,,Interest Rate,2026-09-30,Lãi suất bình quân liên ngân hàng (%/năm),9 tháng,8.55,%,
+,2026-09-29,,,,,Interest Rate,2026-09-30,Lãi suất bình quân liên ngân hàng (%/năm), 6 tháng  ,7.54,%,Ngân hàng Nhà nước Việt Nam
+,2026-09-29,,,,,Interest Rate,2026-09-30,Lãi suất bình quân liên ngân hàng (%/năm), 3 tháng  ,6.63,%,Ngân hàng Nhà nước Việt Nam
+,2026-09-29,,,,,Interest Rate,2026-09-30,Lãi suất bình quân liên ngân hàng (%/năm), 1 tháng ,6.37,%,Ngân hàng Nhà nước Việt Nam
+,2026-09-29,,,,,Interest Rate,2026-09-30,Lãi suất bình quân liên ngân hàng (%/năm), 2 tuần ,6.26,%,Ngân hàng Nhà nước Việt Nam
+,2026-09-29,,,,,Interest Rate,2026-09-30,Lãi suất bình quân liên ngân hàng (%/năm), 1 tuần ,6.88,%,Ngân hàng Nhà nước Việt Nam
+,2026-09-29,,,,,Interest Rate,2026-09-30,Doanh số, 12 tháng  ,,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-09-29,,,,,Interest Rate,2026-09-30,Doanh số, 1 tháng ,2240.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
+,2026-09-29,,,,,Interest Rate,2026-09-30,Doanh số, 6 tháng  ,2199.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-09-29,,,,,Interest Rate,2026-09-30,Doanh số, 2 tuần ,1906.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
+,2026-09-29,,,,,Interest Rate,2026-09-30,Doanh số, 3 tháng  ,1190.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
+,2026-09-29,,,,,Interest Rate,2026-09-30,Lãi suất bình quân liên ngân hàng (%/năm),Qua đêm,6.95,%,Ngân hàng Nhà nước Việt Nam
+,2026-09-29,,,,,Interest Rate,2026-09-30,Doanh số,9 tháng,241.0,Tỷ VNĐ,
 ,2026-09-29,,,,,Interest Rate,2026-09-30,Doanh số, 1 tuần ,15435.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-09-29,,,,,Interest Rate,2026-09-30,Doanh số,Qua đêm,1147432.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
-,2026-07-30,,,,,Interest Rate,2026-07-31,Doanh số,Qua đêm,1083105.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
-,2026-07-30,,,,,Interest Rate,2026-07-31,Lãi suất bình quân liên ngân hàng (%/năm), 12 tháng  ,,%,Ngân hàng Nhà nước Việt Nam
-,2026-07-30,,,,,Interest Rate,2026-07-31,Lãi suất bình quân liên ngân hàng (%/năm),9 tháng,9.26,%,
 ,2026-07-30,,,,,Interest Rate,2026-07-31,Lãi suất bình quân liên ngân hàng (%/năm), 6 tháng  ,7.56,%,Ngân hàng Nhà nước Việt Nam
-,2026-07-30,,,,,Interest Rate,2026-07-31,Lãi suất bình quân liên ngân hàng (%/năm), 3 tháng  ,7.31,%,Ngân hàng Nhà nước Việt Nam
 ,2026-07-30,,,,,Interest Rate,2026-07-31,Lãi suất bình quân liên ngân hàng (%/năm), 1 tháng ,6.93,%,Ngân hàng Nhà nước Việt Nam
 ,2026-07-30,,,,,Interest Rate,2026-07-31,Lãi suất bình quân liên ngân hàng (%/năm), 2 tuần ,5.99,%,Ngân hàng Nhà nước Việt Nam
 ,2026-07-30,,,,,Interest Rate,2026-07-31,Lãi suất bình quân liên ngân hàng (%/năm), 1 tuần ,4.83,%,Ngân hàng Nhà nước Việt Nam
+,2026-07-30,,,,,Interest Rate,2026-07-31,Lãi suất bình quân liên ngân hàng (%/năm),Qua đêm,5.72,%,Ngân hàng Nhà nước Việt Nam
+,2026-07-30,,,,,Interest Rate,2026-07-31,Doanh số, 12 tháng  ,,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-07-30,,,,,Interest Rate,2026-07-31,Doanh số,9 tháng,230.0,Tỷ VNĐ,
 ,2026-07-30,,,,,Interest Rate,2026-07-31,Doanh số, 6 tháng  ,549.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
-,2026-07-30,,,,,Interest Rate,2026-07-31,Doanh số, 3 tháng  ,1840.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-07-30,,,,,Interest Rate,2026-07-31,Doanh số, 1 tháng ,2950.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-07-30,,,,,Interest Rate,2026-07-31,Doanh số, 2 tuần ,5380.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
 ,2026-07-30,,,,,Interest Rate,2026-07-31,Doanh số, 1 tuần ,12930.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
-,2026-07-30,,,,,Interest Rate,2026-07-31,Lãi suất bình quân liên ngân hàng (%/năm),Qua đêm,5.72,%,Ngân hàng Nhà nước Việt Nam
-,2026-07-30,,,,,Interest Rate,2026-07-31,Doanh số, 12 tháng  ,,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
+,2026-07-30,,,,,Interest Rate,2026-07-31,Doanh số,Qua đêm,1083105.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
+,2026-07-30,,,,,Interest Rate,2026-07-31,Lãi suất bình quân liên ngân hàng (%/năm),9 tháng,9.26,%,
+,2026-07-30,,,,,Interest Rate,2026-07-31,Lãi suất bình quân liên ngân hàng (%/năm), 12 tháng  ,,%,Ngân hàng Nhà nước Việt Nam
+,2026-07-30,,,,,Interest Rate,2026-07-31,Doanh số, 3 tháng  ,1840.0,Tỷ VNĐ,Ngân hàng Nhà nước Việt Nam
+,2026-07-30,,,,,Interest Rate,2026-07-31,Lãi suất bình quân liên ngân hàng (%/năm), 3 tháng  ,7.31,%,Ngân hàng Nhà nước Việt Nam

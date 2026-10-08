@@ -99,7 +99,7 @@ silver_flow,silver_flow_source=load_silver_flow()
 print(f"[DCVFM V3.3] render ready in {time.time()-START_TS:.2f}s | stock_source={stock_source} | flow_source={silver_flow_source}", flush=True)
 if market_error:
     if market_source == "Vnstock Cache":
-        st.info("Live Vnstock request failed; the platform is using the last successful authenticated market cache.")
+        st.info("VNSTOCK SILVER CACHE • Local authenticated refresh; Cloud does not call Sponsor APIs.")
     else:
         st.info("Live Vnstock and local cache are unavailable; the platform is using a clearly labelled illustrative fallback. Company data still comes from Master Excel.")
 
@@ -110,7 +110,11 @@ def _v33_csv(name):
     p=_V33_CACHE/name
     try: return pd.read_csv(p) if p.exists() else pd.DataFrame()
     except Exception: return pd.DataFrame()
-def _production_ready(): return 'Illustrative' not in str(stock_source) and not stock_scores.empty
+def _production_ready():
+    try:
+        meta=json.loads((_V33_CACHE/'silver_metadata.json').read_text(encoding='utf-8'))
+        return bool(meta.get('full_factor_ready',False)) and 'Illustrative' not in str(stock_source) and not stock_scores.empty
+    except Exception: return False
 
 def _status_banner():
     meta={}
@@ -136,7 +140,9 @@ if selected_page=='01 Macro Intelligence':
 if selected_page=='02 Sector Intelligence':
     st.markdown('## 02 • Sector Intelligence'); _status_banner(); sec=_v33_csv('silver_sector_snapshot.csv')
     if sec.empty: st.info('Sector cache is not available until the full-factor Silver refresh completes.')
+    elif sec['sector'].fillna('Unknown').eq('Unknown').all(): st.warning('Sector classification unavailable: all tickers are Unknown. Provide a verified sector_mapping.csv; sector ranking is withheld.'); dataframe(sec)
     else:
+        sec=sec[sec['sector'].fillna('Unknown').ne('Unknown')].copy()
         a,b=st.columns([1.25,1]); a.plotly_chart(px.bar(sec.sort_values('sector_score'),x='sector_score',y='sector',orientation='h',title='Sector opportunity score'),use_container_width=True)
         b.plotly_chart(px.scatter(sec,x='ret_60d',y='money_flow_score',size='stocks',color='sector_score',hover_name='sector',title='Sector rotation: 3M return vs money flow'),use_container_width=True)
         dataframe(sec.sort_values('sector_score',ascending=False))
@@ -147,7 +153,7 @@ if selected_page=='03 Market Overview':
     for x,(k,v) in zip(c,vals):x.metric(k,v)
     tech=market_technical_frame(market); fig=go.Figure(); fig.add_trace(go.Scatter(x=tech.date,y=tech.close,name='VN-Index')); fig.add_trace(go.Scatter(x=tech.date,y=tech.MA20,name='MA20')); fig.add_trace(go.Scatter(x=tech.date,y=tech.MA50,name='MA50')); fig.update_layout(template='plotly_dark',height=440,title=f'Market trend • source: {market_source}'); st.plotly_chart(fig,use_container_width=True)
     if not silver_flow.empty:
-        st.markdown('### Market money-flow leaders'); dataframe(silver_flow.head(15)[[c for c in ['symbol','foreign_flow_score','proprietary_flow_score','active_flow_score','money_flow_score'] if c in silver_flow.columns]])
+        st.markdown('### Market money-flow leaders'); dataframe(silver_flow.sort_values('money_flow_score',ascending=False,na_position='last').head(15)[[c for c in ['symbol','foreign_flow_score','proprietary_flow_score','active_flow_score','money_flow_score'] if c in silver_flow.columns]])
 
 if selected_page=='04 Recommended BUY':
     st.markdown('## 04 • Recommended BUY'); _status_banner()
