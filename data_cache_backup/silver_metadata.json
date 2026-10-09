@@ -1,0 +1,23 @@
+{
+  "coverage": {
+    "sector": 0.0,
+    "pe": 0.993,
+    "pb": 0.993,
+    "roe": 0.993,
+    "ret_20d": 1.0,
+    "ret_60d": 1.0,
+    "liquidity_score": 1.0,
+    "money_flow_score": 1.0,
+    "revenue_growth": 0.907,
+    "profit_growth": 1.0
+  },
+  "source": "VNSTOCK_SILVER",
+  "refresh_timestamp": "2026-10-08T13:33:19+07:00",
+  "stock_rows": 300,
+  "flow_rows": 390,
+  "full_factor_ready": false,
+  "universe_scope": "HOSE eligible 3-letter symbols from flow endpoints",
+  "universe_limit": 300,
+  "score_version": "DCVFM-V3.3.5",
+  "note": "Sanitized local Silver cache; public cloud performs no Sponsor authentication."
+}

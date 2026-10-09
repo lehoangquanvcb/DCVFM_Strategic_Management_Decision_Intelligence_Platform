@@ -3,7 +3,7 @@ Run ONLY in the licensed local Vnstock Silver environment. It writes sanitized c
 for the public Streamlit layer; credentials are never written to cache.
 """
 from __future__ import annotations
-import json, re, time, sys, argparse
+import json, re, time, sys, argparse, os, hashlib
 from datetime import datetime, timedelta
 from pathlib import Path
 import numpy as np, pandas as pd
@@ -14,6 +14,9 @@ NOW=datetime.now().astimezone(); START=(NOW-timedelta(days=420)).date().isoforma
 # --max-symbols 0 selects every eligible HOSE flow symbol (potentially hundreds of API calls).
 PARSER=argparse.ArgumentParser(add_help=True)
 PARSER.add_argument('--repair-cache',action='store_true')
+PARSER.add_argument('--resume',action='store_true',help='Continue a matching saved checkpoint')
+PARSER.add_argument('--reset-checkpoint',action='store_true',help='Discard checkpoint and start new refresh')
+PARSER.add_argument('--checkpoint-every',type=int,default=20)
 PARSER.add_argument('--enrich-growth',action='store_true')
 PARSER.add_argument('--max-symbols',type=int,default=120,help='0 = all available eligible symbols; default 120 for backwards compatibility')
 PARSER.add_argument('--sector-file',default='',help='Optional verified CSV with symbol,sector,source,as_of_date')
@@ -21,9 +24,39 @@ PARSER.add_argument('--exchanges',default='HOSE,HNX,UPCOM',help='Comma-separated
 PARSER.add_argument('--universe-file',default='',help='Optional verified listing CSV: symbol,exchange,sector,source,as_of_date')
 ARGS=PARSER.parse_args()
 if ARGS.max_symbols < 0: PARSER.error('--max-symbols must be >= 0')
+if ARGS.checkpoint_every < 1:PARSER.error('--checkpoint-every must be >= 1')
 MAX_SYMBOLS=ARGS.max_symbols
 EXCHANGES=[x.strip().upper() for x in ARGS.exchanges.split(',') if x.strip()]
 if not EXCHANGES or any(x not in {'HOSE','HNX','UPCOM'} for x in EXCHANGES):PARSER.error('exchanges must be HOSE,HNX,UPCOM')
+
+# Local checkpoint is never committed or published to Cloud.
+CHECKPOINT=OUT.parent/'.refresh_checkpoint'
+def atomic_write_csv(frame,path):
+    temp=path.with_suffix('.tmp');frame.to_csv(temp,index=False,encoding='utf-8-sig');os.replace(temp,path)
+def checkpoint_id(universe):
+    raw=json.dumps({'symbols':universe,'start':START,'end':END,'exchanges':EXCHANGES,'enrich_growth':ARGS.enrich_growth},sort_keys=True)
+    return hashlib.sha256(raw.encode()).hexdigest()
+def stage_load(stage,ident):
+    state_file=CHECKPOINT/(stage+'.json');data_file=CHECKPOINT/(stage+'.csv')
+    if not ARGS.resume:return {},set()
+    if not state_file.exists() or not data_file.exists():return {},set()
+    state=json.loads(state_file.read_text(encoding='utf-8'))
+    if state.get('id')!=ident:raise SystemExit('Checkpoint differs from current universe/date/options. Use --reset-checkpoint to start over.')
+    data=pd.read_csv(data_file,encoding='utf-8-sig')
+    rows={str(r['symbol']):r for r in data.to_dict('records')} if 'symbol' in data else {}
+    attempted=set(state.get('attempted',[]))
+    print('RESUME',stage,'attempted',len(attempted),'saved rows',len(rows))
+    return rows,attempted
+def stage_save(stage,ident,rows,attempted):
+    CHECKPOINT.mkdir(exist_ok=True)
+    atomic_write_csv(pd.DataFrame(list(rows.values())) if rows else pd.DataFrame(columns=['symbol']),CHECKPOINT/(stage+'.csv'))
+    temp=CHECKPOINT/(stage+'.json.tmp')
+    temp.write_text(json.dumps({'id':ident,'attempted':sorted(attempted)},ensure_ascii=False),encoding='utf-8')
+    os.replace(temp,CHECKPOINT/(stage+'.json'))
+def stage_reset():
+    if CHECKPOINT.exists():
+        for f in CHECKPOINT.iterdir():
+            if f.is_file() and f.name.split('.')[0] in ('prices','growth'):f.unlink()
 
 def pct(s, high=True):
     x=pd.to_numeric(s.astype(str).str.replace(',', '', regex=False),errors='coerce'); return x.rank(pct=True,ascending=high)*100
@@ -211,8 +244,8 @@ def repair_existing_cache():
     coverage={c:round(float(stocks[c].notna().mean()),3) if c in stocks and len(stocks) else 0 for c in fields}
     coverage['sector']=round(float((stocks['sector'].notna() & stocks['sector'].ne('Unknown')).mean()),3) if 'sector' in stocks and len(stocks) else 0
     ready=bool(len(stocks)>=20 and all(coverage[c]>=.8 for c in fields))
-    meta={'source':'VNSTOCK_SILVER','refresh_timestamp':NOW.isoformat(timespec='seconds'),'stock_rows':len(stocks),'flow_rows':len(flow),'coverage':coverage,'full_factor_ready':ready,'universe_scope':'Verified flow endpoints and optional listing CSV','universe_limit':MAX_SYMBOLS,'requested_exchanges':EXCHANGES,'score_version':'DCVFM-V3.3.6','note':'Verified sector mapping; quarterly YoY long-format income extraction (verify standalone quarter basis); missing values remain missing.'}
-    (OUT/'silver_metadata.json').write_text(json.dumps(meta,ensure_ascii=False,indent=2),encoding='utf-8')
+    meta={'source':'VNSTOCK_SILVER','refresh_timestamp':NOW.isoformat(timespec='seconds'),'stock_rows':len(stocks),'flow_rows':len(flow),'coverage':coverage,'full_factor_ready':ready,'universe_scope':'Verified flow endpoints and optional listing CSV','universe_limit':MAX_SYMBOLS,'requested_exchanges':EXCHANGES,'score_version':'DCVFM-V3.3.7','note':'Verified sector mapping; quarterly YoY long-format income extraction (verify standalone quarter basis); missing values remain missing.'}
+    temp=OUT/'silver_metadata.json.tmp';temp.write_text(json.dumps(meta,ensure_ascii=False,indent=2),encoding='utf-8');os.replace(temp,OUT/'silver_metadata.json')
     print('FLOW REPAIR:',{c:round(float(stocks[c].notna().mean()),3) for c in cols})
     print('DATA QUALITY:',coverage,'READY:',ready)
     print('Saved repaired caches to',OUT)
@@ -270,39 +303,66 @@ if not listing.empty:
     ranked=list(dict.fromkeys(ranked+listing.symbol.tolist()))
 universe=ranked[:MAX_SYMBOLS] if MAX_SYMBOLS else ranked
 print('UNIVERSE: flow symbols',len(flow),'verified listing extras',max(0,len(universe)-len(flow)),'selected',len(universe),'max_symbols',MAX_SYMBOLS)
-rows=[]
+ident=checkpoint_id(universe)
+if ARGS.reset_checkpoint or not ARGS.resume:stage_reset()
+price_rows,price_attempted=stage_load('prices',ident)
 for n,s in enumerate(universe,1):
-    pf=price_features(s,mkt)
-    if pf:
-        matched=flow.loc[flow.symbol==s]
-        pf['exchange']=matched.exchange.iloc[0] if not matched.empty else (listing.loc[listing.symbol==s,'exchange'].iloc[0] if not listing.empty and s in set(listing.symbol) else 'Unknown')
-        for score in ['foreign_flow_score','proprietary_flow_score','money_flow_score']:
-            pf[score]=matched[score].iloc[0] if not matched.empty and score in matched else np.nan
-        if not scr.empty and 'symbol' in scr:
-            q=scr[scr.symbol==s]
-            if not q.empty:
-                r=q.iloc[0]
-                for c in ['sector','sector_lv1','pe','pb','roe','revenue_growth','npatmi_growth','adtv','avg_volume']:
-                    if c in q.columns:pf[c]=r[c]
-                if 'npatmi_growth' in pf:pf['profit_growth']=pf['npatmi_growth']
-        if not all(k in pf and pd.notna(pf[k]) for k in ['pe','pb','roe']):pf.update({k:v for k,v in latest_ratio(s,fun).items() if k not in pf or pd.isna(pf[k])})
-        rows.append(pf)
-    if n%20==0:print('  prices/factors',n,'/',len(universe))
-
-stocks=pd.DataFrame(rows)
-if not stocks.empty:
-    if 'sector' not in stocks:stocks['sector']=stocks.get('sector_lv1','Unknown')
-    stocks['sector']=stocks['sector'].fillna(stocks['sector_lv1'] if 'sector_lv1' in stocks else 'Unknown').replace(['', 'nan', 'None'],np.nan).fillna('Unknown')
-    stocks=apply_verified_sector_mapping(stocks)
-    if ARGS.enrich_growth:stocks=enrich_growth_from_silver(stocks)
-    stocks['liquidity_score']=pct(stocks['adtv_20d'])
-    for c in ['pe','pb','roe','revenue_growth','profit_growth']:stocks[c]=pd.to_numeric(stocks.get(c,np.nan),errors='coerce')
-    stocks['data_timestamp']=stocks['price_date']; stocks['refresh_timestamp']=NOW.isoformat(timespec='seconds'); stocks['source']='VNSTOCK_SILVER'
-    # Reconcile flow scores by normalized ticker, independent of API result ordering.
-    score_cols=[c for c in ['foreign_flow_score','proprietary_flow_score','active_flow_score','money_flow_score'] if c in flow.columns]
-    stocks=stocks.drop(columns=score_cols,errors='ignore').merge(flow[['symbol']+score_cols].drop_duplicates('symbol'),on='symbol',how='left',validate='one_to_one')
-    stocks.to_csv(OUT/'silver_stock_snapshot.csv',index=False,encoding='utf-8-sig')
-    sector_snapshot(stocks).to_csv(OUT/'silver_sector_snapshot.csv',index=False,encoding='utf-8-sig')
+    if s in price_attempted:continue
+    try:
+        pf=price_features(s,mkt)
+        if pf:
+            matched=flow.loc[flow.symbol==s]
+            pf['exchange']=matched.exchange.iloc[0] if not matched.empty else (listing.loc[listing.symbol==s,'exchange'].iloc[0] if not listing.empty and s in set(listing.symbol) else 'Unknown')
+            for score in ['foreign_flow_score','proprietary_flow_score','money_flow_score']:
+                pf[score]=matched[score].iloc[0] if not matched.empty and score in matched else np.nan
+            if not scr.empty and 'symbol' in scr:
+                q=scr[scr.symbol==s]
+                if not q.empty:
+                    r=q.iloc[0]
+                    for c in ['sector','sector_lv1','pe','pb','roe','revenue_growth','npatmi_growth','adtv','avg_volume']:
+                        if c in q.columns:pf[c]=r[c]
+                    if 'npatmi_growth' in pf:pf['profit_growth']=pf['npatmi_growth']
+            if not all(k in pf and pd.notna(pf[k]) for k in ['pe','pb','roe']):
+                pf.update({k:v for k,v in latest_ratio(s,fun).items() if k not in pf or pd.isna(pf[k])})
+            price_rows[s]=pf
+    except Exception as exc:print('PRICE ERROR',s,type(exc).__name__)
+    price_attempted.add(s)
+    if n%ARGS.checkpoint_every==0:
+        stage_save('prices',ident,price_rows,price_attempted)
+        print('  prices/factors',n,'/',len(universe),'checkpoint',len(price_rows))
+stage_save('prices',ident,price_rows,price_attempted)
+stocks=pd.DataFrame(list(price_rows.values()))
+if stocks.empty:raise SystemExit('No usable stock data; prior cache remains unchanged.')
+if 'sector' not in stocks:stocks['sector']=stocks.get('sector_lv1','Unknown')
+stocks['sector']=stocks['sector'].fillna(stocks['sector_lv1'] if 'sector_lv1' in stocks else 'Unknown').replace(['', 'nan', 'None'],np.nan).fillna('Unknown')
+stocks=apply_verified_sector_mapping(stocks)
+if ARGS.enrich_growth:
+    growth_rows,growth_attempted=stage_load('growth',ident)
+    f=Fundamental()
+    for n,sym in enumerate(stocks.symbol,1):
+        if sym in growth_attempted:continue
+        try:
+            eq=f.equity(sym) if callable(f.equity) else f.equity
+            d=eq.income_statement() if callable(f.equity) else eq.income_statement(sym)
+            growth_rows[sym]={'symbol':sym,**_growth_from_income(d)}
+        except Exception as exc:print('GROWTH ERROR',sym,type(exc).__name__)
+        growth_attempted.add(sym)
+        if n%ARGS.checkpoint_every==0:
+            stage_save('growth',ident,growth_rows,growth_attempted)
+            print('  growth checked',n,'/',len(stocks),'checkpoint',len(growth_rows))
+    stage_save('growth',ident,growth_rows,growth_attempted)
+    growth_df=pd.DataFrame(list(growth_rows.values()))
+    for c in ['revenue_growth','profit_growth']:
+        if c not in stocks:stocks[c]=np.nan
+        if not growth_df.empty and c in growth_df:
+            stocks[c]=stocks[c].fillna(stocks.symbol.map(growth_df.set_index('symbol')[c]))
+stocks['liquidity_score']=pct(stocks['adtv_20d'])
+for c in ['pe','pb','roe','revenue_growth','profit_growth']:stocks[c]=pd.to_numeric(stocks.get(c,np.nan),errors='coerce')
+stocks['data_timestamp']=stocks['price_date'];stocks['refresh_timestamp']=NOW.isoformat(timespec='seconds');stocks['source']='VNSTOCK_SILVER'
+score_cols=[c for c in ['foreign_flow_score','proprietary_flow_score','active_flow_score','money_flow_score'] if c in flow.columns]
+stocks=stocks.drop(columns=score_cols,errors='ignore').merge(flow[['symbol']+score_cols].drop_duplicates('symbol'),on='symbol',how='left',validate='one_to_one')
+atomic_write_csv(stocks,OUT/'silver_stock_snapshot.csv')
+atomic_write_csv(sector_snapshot(stocks),OUT/'silver_sector_snapshot.csv')
 
 # Index history for cloud market regime.
 try:
@@ -312,6 +372,6 @@ save_macro()
 coverage={c:round(float(stocks[c].notna().mean()),3) if c in stocks and len(stocks) else 0.0 for c in ['sector','pe','pb','roe','ret_20d','ret_60d','liquidity_score','money_flow_score','revenue_growth','profit_growth']}
 coverage['sector']=round(float((stocks['sector'].notna() & stocks['sector'].ne('Unknown')).mean()),3) if len(stocks) else 0.0
 ready=bool(len(stocks)>=20 and all(coverage.get(c,0)>=0.8 for c in ['sector','pe','pb','roe','ret_20d','ret_60d','liquidity_score','money_flow_score','revenue_growth','profit_growth']))
-meta={'coverage':coverage,'source':'VNSTOCK_SILVER','refresh_timestamp':NOW.isoformat(timespec='seconds'),'stock_rows':int(len(stocks)),'flow_rows':int(len(flow)),'full_factor_ready':ready,'universe_scope':'Verified flow endpoints and optional listing CSV','universe_limit':MAX_SYMBOLS,'requested_exchanges':EXCHANGES,'score_version':'DCVFM-V3.3.6','note':'Sanitized local Silver cache; public cloud performs no Sponsor authentication.'}
-(OUT/'silver_metadata.json').write_text(json.dumps(meta,ensure_ascii=False,indent=2),encoding='utf-8')
+meta={'coverage':coverage,'source':'VNSTOCK_SILVER','refresh_timestamp':NOW.isoformat(timespec='seconds'),'stock_rows':int(len(stocks)),'flow_rows':int(len(flow)),'full_factor_ready':ready,'universe_scope':'Verified flow endpoints and optional listing CSV','universe_limit':MAX_SYMBOLS,'requested_exchanges':EXCHANGES,'score_version':'DCVFM-V3.3.7','note':'Sanitized local Silver cache; public cloud performs no Sponsor authentication.'}
+temp=OUT/'silver_metadata.json.tmp';temp.write_text(json.dumps(meta,ensure_ascii=False,indent=2),encoding='utf-8');os.replace(temp,OUT/'silver_metadata.json')
 print('DATA QUALITY:',coverage,'READY:',ready); print('Saved caches to',OUT); print(json.dumps(meta,ensure_ascii=False,indent=2))
