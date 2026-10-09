@@ -8,12 +8,15 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import numpy as np, pandas as pd
 from vnstock_data import Insights, Market, Fundamental, Macro
+from sector_reference import save_reference_mapping
 
 OUT=Path(__file__).resolve().parent/'data_cache'; OUT.mkdir(exist_ok=True)
 NOW=datetime.now().astimezone(); START=(NOW-timedelta(days=420)).date().isoformat(); END=NOW.date().isoformat()
 # --max-symbols 0 selects every eligible HOSE flow symbol (potentially hundreds of API calls).
 PARSER=argparse.ArgumentParser(add_help=True)
 PARSER.add_argument('--repair-cache',action='store_true')
+PARSER.add_argument('--sector-only',action='store_true',help='Fetch Reference sectors and rebuild existing cache without price calls')
+PARSER.add_argument('--auto-sector',action='store_true',help='Fetch Reference sectors during full refresh')
 PARSER.add_argument('--resume',action='store_true',help='Continue a matching saved checkpoint')
 PARSER.add_argument('--reset-checkpoint',action='store_true',help='Discard checkpoint and start new refresh')
 PARSER.add_argument('--checkpoint-every',type=int,default=20)
@@ -143,6 +146,16 @@ def score_flow_table(flow):
     flow['money_flow_score']=flow[cols].mean(axis=1).round(2) if cols else np.nan
     return flow
 
+def refresh_reference_sector():
+    if ARGS.sector_file:
+        print('SECTOR: using explicit sector file, not replacing it')
+        return
+    try:
+        save_reference_mapping(OUT.parent/'sector_mapping.csv')
+    except Exception as exc:
+        print('SECTOR REFERENCE UNAVAILABLE:',type(exc).__name__,str(exc)[:300])
+        print('SECTOR: no fabricated mapping; existing mapping retained')
+
 def apply_verified_sector_mapping(stocks):
     """Only a user-verified symbol/sector mapping may fill Unknown sectors."""
     mapping_path=Path(ARGS.sector_file) if ARGS.sector_file else (Path(ARGS.universe_file) if ARGS.universe_file else OUT.parent/'sector_mapping.csv')
@@ -244,17 +257,19 @@ def repair_existing_cache():
     coverage={c:round(float(stocks[c].notna().mean()),3) if c in stocks and len(stocks) else 0 for c in fields}
     coverage['sector']=round(float((stocks['sector'].notna() & stocks['sector'].ne('Unknown')).mean()),3) if 'sector' in stocks and len(stocks) else 0
     ready=bool(len(stocks)>=20 and all(coverage[c]>=.8 for c in fields))
-    meta={'source':'VNSTOCK_SILVER','refresh_timestamp':NOW.isoformat(timespec='seconds'),'stock_rows':len(stocks),'flow_rows':len(flow),'coverage':coverage,'full_factor_ready':ready,'universe_scope':'Verified flow endpoints and optional listing CSV','universe_limit':MAX_SYMBOLS,'requested_exchanges':EXCHANGES,'score_version':'DCVFM-V3.3.7','note':'Verified sector mapping; quarterly YoY long-format income extraction (verify standalone quarter basis); missing values remain missing.'}
+    meta={'source':'VNSTOCK_SILVER','refresh_timestamp':NOW.isoformat(timespec='seconds'),'stock_rows':len(stocks),'flow_rows':len(flow),'coverage':coverage,'full_factor_ready':ready,'universe_scope':'Verified flow endpoints and optional listing CSV','universe_limit':MAX_SYMBOLS,'requested_exchanges':EXCHANGES,'score_version':'DCVFM-V3.3.11','note':'Verified sector mapping; quarterly YoY long-format income extraction (verify standalone quarter basis); missing values remain missing.'}
     temp=OUT/'silver_metadata.json.tmp';temp.write_text(json.dumps(meta,ensure_ascii=False,indent=2),encoding='utf-8');os.replace(temp,OUT/'silver_metadata.json')
     print('FLOW REPAIR:',{c:round(float(stocks[c].notna().mean()),3) for c in cols})
     print('DATA QUALITY:',coverage,'READY:',ready)
     print('Saved repaired caches to',OUT)
 
-if ARGS.repair_cache:
+if ARGS.sector_only or ARGS.auto_sector:
+    refresh_reference_sector()
+if ARGS.repair_cache or ARGS.sector_only:
     repair_existing_cache()
     sys.exit(0)
 
-print('DCVFM V3.3 — refreshing Vnstock Silver caches')
+print('DCVFM V3.3.11 — refreshing Vnstock Silver caches')
 i=Insights(); mkt=Market(); fun=Fundamental()
 frames=[]; successful_exchanges=[]
 for exchange in EXCHANGES:
@@ -372,6 +387,6 @@ save_macro()
 coverage={c:round(float(stocks[c].notna().mean()),3) if c in stocks and len(stocks) else 0.0 for c in ['sector','pe','pb','roe','ret_20d','ret_60d','liquidity_score','money_flow_score','revenue_growth','profit_growth']}
 coverage['sector']=round(float((stocks['sector'].notna() & stocks['sector'].ne('Unknown')).mean()),3) if len(stocks) else 0.0
 ready=bool(len(stocks)>=20 and all(coverage.get(c,0)>=0.8 for c in ['sector','pe','pb','roe','ret_20d','ret_60d','liquidity_score','money_flow_score','revenue_growth','profit_growth']))
-meta={'coverage':coverage,'source':'VNSTOCK_SILVER','refresh_timestamp':NOW.isoformat(timespec='seconds'),'stock_rows':int(len(stocks)),'flow_rows':int(len(flow)),'full_factor_ready':ready,'universe_scope':'Verified flow endpoints and optional listing CSV','universe_limit':MAX_SYMBOLS,'requested_exchanges':EXCHANGES,'score_version':'DCVFM-V3.3.7','note':'Sanitized local Silver cache; public cloud performs no Sponsor authentication.'}
+meta={'coverage':coverage,'source':'VNSTOCK_SILVER','refresh_timestamp':NOW.isoformat(timespec='seconds'),'stock_rows':int(len(stocks)),'flow_rows':int(len(flow)),'full_factor_ready':ready,'universe_scope':'Verified flow endpoints and optional listing CSV','universe_limit':MAX_SYMBOLS,'requested_exchanges':EXCHANGES,'score_version':'DCVFM-V3.3.11','note':'Sanitized local Silver cache; public cloud performs no Sponsor authentication.'}
 temp=OUT/'silver_metadata.json.tmp';temp.write_text(json.dumps(meta,ensure_ascii=False,indent=2),encoding='utf-8');os.replace(temp,OUT/'silver_metadata.json')
 print('DATA QUALITY:',coverage,'READY:',ready); print('Saved caches to',OUT); print(json.dumps(meta,ensure_ascii=False,indent=2))

@@ -96,7 +96,7 @@ mm=market_metrics(market); regime=market_regime(mm); ex=executive_metrics(data);
 header(APP_VERSION,AUTHOR)
 stock_raw,stock_source=load_stock_universe(); stock_scores=score_stocks(stock_raw)
 silver_flow,silver_flow_source=load_silver_flow()
-print(f"[DCVFM V3.3] render ready in {time.time()-START_TS:.2f}s | stock_source={stock_source} | flow_source={silver_flow_source}", flush=True)
+print(f"[DCVFM V3.3.9] render ready in {time.time()-START_TS:.2f}s | stock_source={stock_source} | flow_source={silver_flow_source}", flush=True)
 if market_error:
     if market_source == "Vnstock Cache":
         st.info("VNSTOCK SILVER CACHE • Local authenticated refresh; Cloud does not call Sponsor APIs.")
@@ -110,20 +110,54 @@ def _v33_csv(name):
     p=_V33_CACHE/name
     try: return pd.read_csv(p) if p.exists() else pd.DataFrame()
     except Exception: return pd.DataFrame()
-def _production_ready():
-    try:
-        meta=json.loads((_V33_CACHE/'silver_metadata.json').read_text(encoding='utf-8'))
-        return bool(meta.get('full_factor_ready',False)) and 'Illustrative' not in str(stock_source) and not stock_scores.empty
-    except Exception: return False
-
-def _status_banner():
+def _silver_cache_status():
+    """Separate cache presence from model readiness; never infer readiness from row count alone."""
     meta={}
     try:
-        p=_V33_CACHE/'silver_metadata.json'
-        if p.exists(): meta=json.loads(p.read_text(encoding='utf-8'))
-    except Exception: pass
-    if _production_ready(): st.success(f"VNSTOCK SILVER CACHE • Data/refresh: {meta.get('refresh_timestamp','available')} • Score: {meta.get('score_version','DCVFM-V3.3')}")
-    else: st.warning("Full-factor Vnstock Silver cache is not available. Run refresh_silver_ai.py locally, then commit data_cache outputs. Model BUY/SELL is withheld; demo data is not treated as a recommendation.")
+        path=_V33_CACHE/'silver_metadata.json'
+        if path.exists(): meta=json.loads(path.read_text(encoding='utf-8'))
+    except (OSError, ValueError, TypeError):
+        pass
+    real_source=str(meta.get('source','')).upper()=='VNSTOCK_SILVER'
+    cache_present=real_source and not stock_raw.empty and 'Illustrative' not in str(stock_source)
+    coverage=meta.get('coverage') or {}
+    sector_coverage=float(coverage.get('sector') or 0)
+    model_ready=bool(cache_present and meta.get('full_factor_ready',False) and sector_coverage>0 and not stock_scores.empty)
+    return {'meta':meta,'available':cache_present,'ready':model_ready,'sector_coverage':sector_coverage}
+
+def _production_ready():
+    return _silver_cache_status()['ready']
+
+def _status_banner():
+    status=_silver_cache_status(); meta=status['meta']
+    if status['ready']:
+        st.success(f"VNSTOCK SILVER • Recommendation quality gate passed • {meta.get('stock_rows',len(stock_raw)):,} stocks • Refresh: {meta.get('refresh_timestamp','unknown')}")
+    elif status['available']:
+        st.info(f"VNSTOCK SILVER CACHE AVAILABLE • {meta.get('stock_rows',len(stock_raw)):,} stocks • {meta.get('score_version','unknown version')} • Refresh: {meta.get('refresh_timestamp','unknown')}")
+        st.warning(f"Recommendation quality gate NOT PASSED • Sector coverage: {status['sector_coverage']:.1%}. Market, macro, and available stock factors remain viewable; official BUY/SELL and model portfolio remain withheld.")
+    else:
+        st.warning('Silver stock cache not found in this deployment. Verify tracked cache files and metadata in the deployed Git commit.')
+
+def _stock_factor_diagnostics():
+    status=_silver_cache_status()
+    if not status['available']:
+        st.info('No deployed Silver stock cache. Check GitHub deployment and data_cache metadata.')
+        return
+    st.markdown('### Silver stock-factor explorer — NOT investment recommendations')
+    st.caption('Raw observations, not BUY/SELL signals. Coverage does not guarantee accuracy. Filters and rankings below are descriptive only.')
+    d=stock_raw.copy()
+    if 'exchange' in d:
+        exchanges=sorted(d['exchange'].dropna().astype(str).unique().tolist())
+        chosen=st.multiselect('Exchanges',exchanges,default=exchanges,key='factor_exchange')
+        d=d[d['exchange'].astype(str).isin(chosen)]
+    metric=st.selectbox('Sort by available factor',[c for c in ['ret_60d','ret_20d','money_flow_score','roe','revenue_growth','profit_growth','liquidity_score'] if c in d],key='factor_sort')
+    if metric:
+        d=d.sort_values(metric,ascending=False,na_position='last')
+    cols=[c for c in ['symbol','exchange','sector','close','pe','pb','roe','revenue_growth','profit_growth','ret_20d','ret_60d','money_flow_score'] if c in d]
+    st.metric('Securities in view',f'{len(d):,}')
+    dataframe(d[cols].head(200))
+    st.download_button('Export research factors CSV',d[cols].to_csv(index=False).encode('utf-8-sig'),'silver_factor_research.csv','text/csv')
+    st.caption(f"Source: {status['meta'].get('source','N/A')} • Refreshed: {status['meta'].get('refresh_timestamp','N/A')}")
 
 if selected_page=='01 Macro Intelligence':
     st.markdown('## 01 • Macro Intelligence')
@@ -138,14 +172,35 @@ if selected_page=='01 Macro Intelligence':
     st.write('The CIO layer should translate growth, inflation, liquidity/rates and FX into **Risk-On / Neutral / Risk-Off / Stress**, then pass that regime to sector allocation and portfolio cash limits.')
 
 if selected_page=='02 Sector Intelligence':
-    st.markdown('## 02 • Sector Intelligence'); _status_banner(); sec=_v33_csv('silver_sector_snapshot.csv')
-    if sec.empty: st.info('Sector cache is not available until the full-factor Silver refresh completes.')
-    elif sec['sector'].fillna('Unknown').eq('Unknown').all(): st.warning('Sector classification unavailable: all tickers are Unknown. Provide a verified sector_mapping.csv; sector ranking is withheld.'); dataframe(sec)
+    st.markdown('## 02 • Sector Intelligence'); _status_banner()
+    sec=_v33_csv('silver_sector_snapshot.csv')
+    status=_silver_cache_status()
+    if status['available']:
+        st.markdown('### Universe diagnostics — real Silver cache')
+        stock_count=len(stock_raw)
+        classified=stock_raw.get('sector',pd.Series(['Unknown']*stock_count)).fillna('Unknown').astype(str).str.strip().ne('Unknown').sum()
+        a,b,c=st.columns(3)
+        a.metric('Stocks with price/factors',f'{stock_count:,}')
+        b.metric('Classified stocks',f'{classified:,}')
+        c.metric('Sector coverage',f'{classified/max(stock_count,1):.1%}')
+        if 'exchange' in stock_raw:
+            ex=stock_raw.groupby('exchange',dropna=False).agg(stocks=('symbol','nunique'),median_60d=('ret_60d','median'),median_flow=('money_flow_score','median')).reset_index()
+            st.markdown('#### Exchange breadth (not sector ranking)')
+            dataframe(ex)
+        st.markdown('#### Securities awaiting verified classification')
+        cols=[c for c in ['symbol','exchange','close','ret_60d','money_flow_score'] if c in stock_raw]
+        unknown=stock_raw[stock_raw.get('sector',pd.Series('Unknown',index=stock_raw.index)).fillna('Unknown').eq('Unknown')]
+        dataframe(unknown[cols].head(200))
+        st.download_button('Export unmapped tickers (CSV)',unknown[[c for c in ['symbol','exchange'] if c in unknown]].to_csv(index=False).encode('utf-8-sig'),'sector_mapping_worklist.csv','text/csv')
+    if sec.empty or 'sector' not in sec or sec['sector'].fillna('Unknown').eq('Unknown').all():
+        st.warning('Verified sector classification is missing. No sector rotation ranking is calculated. Add an audited sector_mapping.csv to the local refresh pipeline.')
     else:
         sec=sec[sec['sector'].fillna('Unknown').ne('Unknown')].copy()
-        a,b=st.columns([1.25,1]); a.plotly_chart(px.bar(sec.sort_values('sector_score'),x='sector_score',y='sector',orientation='h',title='Sector opportunity score'),use_container_width=True)
-        b.plotly_chart(px.scatter(sec,x='ret_60d',y='money_flow_score',size='stocks',color='sector_score',hover_name='sector',title='Sector rotation: 3M return vs money flow'),use_container_width=True)
-        dataframe(sec.sort_values('sector_score',ascending=False))
+        if all(c in sec for c in ['sector','sector_score','ret_60d','money_flow_score','stocks']):
+            a,b=st.columns([1.25,1])
+            a.plotly_chart(px.bar(sec.sort_values('sector_score'),x='sector_score',y='sector',orientation='h',title='Sector opportunity score'),use_container_width=True)
+            b.plotly_chart(px.scatter(sec,x='ret_60d',y='money_flow_score',size='stocks',color='sector_score',hover_name='sector',title='Sector rotation: 3M return vs money flow'),use_container_width=True)
+        dataframe(sec)
 
 if selected_page=='03 Market Overview':
     st.markdown('## 03 • Market Overview'); _status_banner()
@@ -161,21 +216,27 @@ if selected_page=='04 Recommended BUY':
         buy=stock_scores[stock_scores.Signal.astype(str).isin(['BUY','STRONG BUY'])].copy()
         dataframe(buy[[c for c in ['symbol','sector','close','DCVFM_Score','Signal','Holding_Horizon','Model_Upside_Pct','Fundamental','Valuation','Momentum','Money_Flow','Risk_Liquidity','ret_20d','ret_60d'] if c in buy.columns]].head(30))
         st.caption('Model research signal; final implementation remains subject to mandate, liquidity, concentration and Investment Committee review.')
-    else: st.error('BUY recommendations are withheld because the real full-factor Silver cache is missing.')
+    else:
+        st.warning('Official BUY recommendations withheld: verified sector coverage is missing. Explore observed financial, valuation, momentum and flow factors below.')
+        _stock_factor_diagnostics()
 
 if selected_page=='05 REDUCE & SELL':
     st.markdown('## 05 • REDUCE & SELL'); _status_banner()
     if _production_ready():
         sell=stock_scores[stock_scores.Signal.astype(str).isin(['REDUCE','SELL'])].sort_values('DCVFM_Score')
         dataframe(sell[[c for c in ['symbol','sector','close','DCVFM_Score','Signal','Fundamental','Valuation','Momentum','Money_Flow','Risk_Liquidity','ret_20d','ret_60d'] if c in sell.columns]].head(30))
-    else: st.error('REDUCE/SELL recommendations are withheld because the real full-factor Silver cache is missing.')
+    else:
+        st.warning('Official REDUCE/SELL recommendations withheld: sector validation incomplete. Factor diagnostics are available below.')
+        _stock_factor_diagnostics()
 
 if selected_page=='06 Recommended Portfolio':
     st.markdown('## 06 • Recommended Portfolio'); _status_banner(); profile_ai=st.selectbox('Portfolio profile',['Conservative','Balanced','Growth','Aggressive'],index=1,key='v33_profile')
     if _production_ready():
         ideal,cash=construct_portfolio(stock_scores,profile_ai); c=st.columns(3); c[0].metric('Equity allocation',f'{100-cash:.0f}%'); c[1].metric('Cash reserve',f'{cash:.0f}%'); c[2].metric('Positions',len(ideal))
         dataframe(ideal[[c for c in ['symbol','sector','DCVFM_Score','Signal','Holding_Horizon','Weight_Pct','ret_20d','ret_60d'] if c in ideal.columns]])
-    else: st.error('Recommended portfolio is withheld until the real Silver factor cache is available.')
+    else:
+        st.warning('Official model portfolio withheld: missing sector classifications prevent enforcing diversification and concentration constraints. Review investable universe factors below.')
+        _stock_factor_diagnostics()
 
 if selected_page=='07 Current Fund Portfolio':
     st.markdown(f'## 07 • Current Fund Portfolio — {selected_fund}'); cur=current_portfolio(data,selected_fund)
@@ -199,7 +260,9 @@ if selected_page=='08 Portfolio Comparison':
             z=comp.melt(id_vars='Horizon',value_vars=['Current_Fund_Return','Recommended_Return'],var_name='Portfolio',value_name='Return'); st.plotly_chart(px.bar(z,x='Horizon',y='Return',color='Portfolio',barmode='group',title='Current fund vs recommended portfolio'),use_container_width=True)
         st.markdown('### Current holdings mapped to V3.3 signals'); dataframe(detail[[c for c in ['Ticker','Sector','Weight_Pct','DCVFM_Score','Signal','ret_20d','ret_60d','ret_120d','ret_250d'] if c in detail.columns]])
         st.warning('Recommended-portfolio returns shown above are ex-post historical diagnostics using today’s recommended weights; they are not a claim that the strategy earned those returns in real time. A proper walk-forward backtest should be added once daily score snapshots accumulate.')
-    else: st.error('Comparison is withheld until real Silver prices/factors are available.')
+    else:
+        st.warning('Recommended-portfolio comparison withheld: recommendation quality gate has not passed.')
+        _stock_factor_diagnostics()
 
 
 # Main navigation is vertical in the left sidebar. Related legacy tabs are consolidated below.
