@@ -1,9 +1,13 @@
 {
+  "source": "VNSTOCK_SILVER",
+  "refresh_timestamp": "2026-10-09T15:54:51+07:00",
+  "stock_rows": 1220,
+  "flow_rows": 1401,
   "coverage": {
-    "sector": 0.0,
-    "pe": 0.994,
-    "pb": 0.994,
-    "roe": 0.994,
+    "sector": 0.999,
+    "pe": 0.996,
+    "pb": 0.996,
+    "roe": 0.996,
     "ret_20d": 1.0,
     "ret_60d": 1.0,
     "liquidity_score": 1.0,
@@ -11,18 +15,14 @@
     "revenue_growth": 0.811,
     "profit_growth": 0.841
   },
-  "source": "VNSTOCK_SILVER",
-  "refresh_timestamp": "2026-10-08T15:35:48+07:00",
-  "stock_rows": 1220,
-  "flow_rows": 1401,
-  "full_factor_ready": false,
+  "full_factor_ready": true,
   "universe_scope": "Verified flow endpoints and optional listing CSV",
-  "universe_limit": 0,
+  "universe_limit": 120,
   "requested_exchanges": [
     "HOSE",
     "HNX",
     "UPCOM"
   ],
-  "score_version": "DCVFM-V3.3.7",
-  "note": "Sanitized local Silver cache; public cloud performs no Sponsor authentication."
+  "score_version": "DCVFM-V3.3.11",
+  "note": "Verified sector mapping; quarterly YoY long-format income extraction (verify standalone quarter basis); missing values remain missing."
 }
